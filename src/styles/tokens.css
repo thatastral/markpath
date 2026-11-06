@@ -1,0 +1,10 @@
+:root {
+  --color-canvas: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-ink: #172033;
+  --color-muted: #667085;
+  --color-border: #d0d5dd;
+  --color-brand: #2457f5;
+  --color-danger: #b42318;
+  --radius-control: 0.5rem;
+}

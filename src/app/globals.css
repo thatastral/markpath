@@ -1,0 +1,11 @@
+@import "../styles/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+html { background: var(--color-canvas); }
+body { margin: 0; color: var(--color-ink); background: var(--color-canvas); font-family: Arial, sans-serif; }
+button, input { font: inherit; }
+a { color: inherit; }
