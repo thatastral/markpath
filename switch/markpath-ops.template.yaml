@@ -44,4 +44,4 @@ room:
   agents: ["{team}-director", "{team}-design", "{team}-implementation", "{team}-qa"]
   users: ["{$creator}"]
   kickoff: |
-    @ {team}-director Create a Nexa fixture audit plan. Delegate Figma to @{team}-design and code to @{team}-implementation. Request explicit resource approvals, then ask @{team}-qa to independently verify every executed operation.
+    @{team}-director Create a Nexa fixture audit plan. Delegate Figma to @{team}-design and code to @{team}-implementation. Request explicit resource approvals, then ask @{team}-qa to independently verify every executed operation.
