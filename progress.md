@@ -11,3 +11,4 @@
 - Slice 4 added deterministic fixture audits for GitHub-style tokens and Figma snapshots; verification passed with 10 tests.
 - Slice 5 added guarded fixture executors; unapproved operations are refused and all simulated evidence is labelled honestly.
 - Slice 6 added independent fixture QA verification; 12 tests, typecheck, and production build pass.
+- Slice 7 added the Switch room template, authenticated agent boundary, and health adapter; 14 tests and the production build pass. Live Switch setup remains unvalidated.

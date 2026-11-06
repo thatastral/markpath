@@ -11,3 +11,7 @@ Every consequential operation is represented by a stable SHA-256 fingerprint of 
 ## 2026-11-06 — Deferred integrations
 
 Docker, Switch Console, and a local Switch server are not installed or validated at foundation time. The backend is built locally first; Switch, GitHub, Figma, and Canva must display an honest unconnected state until each validation succeeds.
+
+## 2026-11-06 — Switch code before live service
+
+The room template, server-side agent token boundary, and Switch health interface are implemented and unit-tested. They are not evidence of a Switch connection. Live status remains `Not connected` until Docker, Console, local server, `/health`, and an addressed room reply are all validated.

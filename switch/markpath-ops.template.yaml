@@ -1,0 +1,47 @@
+version: 1
+params:
+  team: { type: string, description: "Prefix for Markpath agent names", default: "markpath", pattern: "[a-z][a-z0-9-]*" }
+  provider: { type: provider, default: [codex, claude, opencode], input: advanced }
+  location: { type: location, default: local, input: advanced }
+  directory: { type: directory, default: "{$agents_dir}/{agent}", input: advanced }
+  bridge: { type: bridge, default: [$first] }
+agents:
+  - name: "{team}-director"
+    description: "Coordinates approved Markpath brand operations."
+    addressing: anyone
+    provider: "{provider}"
+    location: "{location}"
+    directory: "{directory}"
+    instructions: |
+      You are the Brand Director. Use the Markpath agent API for facts and record only verified results. Delegate audits with real @mentions. Never claim completion without QA evidence.
+  - name: "{team}-design"
+    description: "Inspects supported Figma resources and reports evidence."
+    addressing: owner_and_owner_agents
+    provider: "{provider}"
+    location: "{location}"
+    directory: "{directory}"
+    instructions: |
+      You are the Design Agent. Inspect only assigned Figma resources. Request a resource-bound approval before edits. Report unsupported operations clearly.
+  - name: "{team}-implementation"
+    description: "Inspects repositories and prepares focused branch/PR changes."
+    addressing: owner_and_owner_agents
+    provider: "{provider}"
+    location: "{location}"
+    directory: "{directory}"
+    instructions: |
+      You are the Implementation Agent. Never edit a default branch or merge. Use the Markpath API approval binding before any execution and report branch, commit, and evidence.
+  - name: "{team}-qa"
+    description: "Independently verifies brand operations."
+    addressing: owner_and_owner_agents
+    provider: "{provider}"
+    location: "{location}"
+    directory: "{directory}"
+    instructions: |
+      You are Brand QA. Re-read resources independently. Do not accept API success or another agent's claim as proof. Return specific verification evidence.
+room:
+  name: "{team}-ops"
+  bridge: "{bridge}"
+  agents: ["{team}-director", "{team}-design", "{team}-implementation", "{team}-qa"]
+  users: ["{$creator}"]
+  kickoff: |
+    @ {team}-director Create a Nexa fixture audit plan. Delegate Figma to @{team}-design and code to @{team}-implementation. Request explicit resource approvals, then ask @{team}-qa to independently verify every executed operation.
