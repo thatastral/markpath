@@ -9,6 +9,8 @@ import { executeFigmaFixture, executeGithubFixture } from "@/server/executors/fi
 import { verifyFigmaFixture, verifyGithubFixture } from "@/server/qa/fixture-verifier";
 import { addTaskResource, createTask, finishVerification, recordActivity, requestApproval, transitionTask, updateTaskResource } from "@/server/tasks/service";
 import { executeGithubReal, isRealGithub, realGithubResourceId, scanGithubRepo, verifyGithubReal } from "@/server/integrations/github";
+import { figmaMcpConfig } from "@/server/integrations/figma";
+import { brandValuesFromSpec } from "@/server/brand/spec";
 import { playbook } from "./playbooks";
 import { agentDisplayName, type AgentPrincipal, type AgentRole } from "./auth";
 
@@ -47,20 +49,21 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   if (active) return { reused: true, ...taskState(ctx, active.id) };
   const spec = db().prepare("SELECT status FROM brand_spec_versions WHERE brand_id = ? AND status = 'approved' LIMIT 1").get(brand.id);
   if (!spec) throw new AgentApiError("The brand specification is not approved yet. Approve it in the dashboard first.", 409);
-  const real = isRealGithub(brand.id);
-  const resources = { github: resourceFor(brand.id, "github") ?? createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web"), figma: resourceFor(brand.id, "figma") ?? createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma") };
+  const real = isRealGithub(brand.id); const figmaMcp = figmaMcpConfig(brand.id);
+  const resources = { github: resourceFor(brand.id, "github") ?? createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web"), figma: figmaMcp ? null : (resourceFor(brand.id, "figma") ?? createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma")) };
   const [githubFindings, snapshot] = await Promise.all([real ? scanGithubRepo(brand.id).then((r) => r.findings) : scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")), readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8")]);
-  const figmaFindings = scanFigmaFixture(JSON.parse(snapshot));
+  const figmaFindings = figmaMcp ? [] : scanFigmaFixture(JSON.parse(snapshot));
   const owner = db().prepare("SELECT user_id FROM memberships WHERE brand_id = ? AND role = 'owner' LIMIT 1").get(brand.id) as { user_id: string } | undefined;
   const name = agentDisplayName[role];
   const { task } = createTask({ brandId: brand.id, initiatedBy: owner?.user_id ?? "", type: "brand_correction", description: `Correct ${brand.name} brand values in ${real ? "the connected GitHub repository" : "the fixture repository"} and design`, idempotencyKey: `agent-audit-${brand.id}-${Date.now()}`, agentName: name });
-  addTaskResource(task.id, resources.github); addTaskResource(task.id, resources.figma);
+  addTaskResource(task.id, resources.github); if (resources.figma) addTaskResource(task.id, resources.figma);
   transitionTask(task.id, "ASSESSING", name); transitionTask(task.id, "AUDITING", name);
-  db().transaction(() => { persistFindings(brand.id, resources.github, githubFindings); persistFindings(brand.id, resources.figma, figmaFindings); })();
+  db().transaction(() => { persistFindings(brand.id, resources.github, githubFindings); if (resources.figma) persistFindings(brand.id, resources.figma, figmaFindings); })();
   transitionTask(task.id, "PLAN_READY", name);
-  requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
-  transitionTask(task.id, "AWAITING_APPROVAL", name);
-  return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...taskState(ctx, task.id) };
+  requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
+  // With a Figma file audited through the MCP, the task waits in PLAN_READY until the Design agent adds the Figma approval (or the Director proceeds without it).
+  if (!figmaMcp) transitionTask(task.id, "AWAITING_APPROVAL", name);
+  return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...(figmaMcp ? { figma: { url: figmaMcp.url, fileKey: figmaMcp.fileKey, next: "Ask the Design agent to audit this Figma file for this task through the Figma MCP. It adds the Figma approval; then post the approval request." } } : {}), ...taskState(ctx, task.id) };
 }
 
 export function taskState(ctx: Pick<Ctx, "brandId">, taskId: string) {
@@ -103,18 +106,25 @@ export async function executeTarget(ctx: Ctx, input: { taskId: string; target: T
 export async function verifyTask(ctx: Ctx, input: { taskId: string }) {
   requireRole(ctx.role, ["qa"], "verify a task");
   const task = taskRow(input.taskId, ctx.brandId);
-  const records = db().prepare("SELECT r.external_resource_id AS target, r.id AS resource_id, e.evidence FROM execution_records e JOIN resources r ON r.id = e.resource_id WHERE e.task_id = ? AND e.mode IN ('fixture', 'github_real') AND e.result = 'succeeded'").all(task.id) as Array<{ target: string; resource_id: string; evidence: string }>;
+  const records = db().prepare("SELECT r.external_resource_id AS target, r.id AS resource_id, e.evidence FROM execution_records e JOIN resources r ON r.id = e.resource_id WHERE e.task_id = ? AND e.mode IN ('fixture', 'github_real', 'figma_plugin', 'figma_mcp') AND e.result IN ('succeeded', 'applied_reported')").all(task.id) as Array<{ target: string; resource_id: string; evidence: string }>;
   const isGithub = (target: string) => target === "nexa-web" || target.startsWith("gh:");
-  const missing = (["github", "figma"] as Target[]).filter((t) => !records.some((r) => (t === "github" ? isGithub(r.target) : r.target === externalId.figma)));
+  const isFigmaFile = (target: string) => target.startsWith("figma-plugin:");
+  const missing = (["github", "figma"] as Target[]).filter((t) => !records.some((r) => (t === "github" ? isGithub(r.target) : r.target === externalId.figma || isFigmaFile(r.target))));
   if (missing.length) throw new AgentApiError(`Refused: nothing to verify yet for ${missing.join(", ")}. Both resources must be executed first.`, 409);
+  // A Figma file edited through the Figma MCP is verified by Brand QA re-reading it there; that report must exist before the task can be finished.
+  const mcpFigma = records.find((r) => isFigmaFile(r.target));
+  if (mcpFigma) {
+    const reported = db().prepare("SELECT status, verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, mcpFigma.resource_id) as { status: string; verification_evidence: string | null } | undefined;
+    if (!reported?.verification_evidence) throw new AgentApiError("Refused: Brand QA must first re-read the Figma file through the Figma MCP and report it with POST /api/agent/figma-verification, then call verify again.", 409);
+  }
   if (task.status === "IMPLEMENTING") transitionTask(task.id, "VERIFYING", "Brand QA");
   else if (task.status !== "VERIFYING") throw new AgentApiError(`Cannot verify while the task is ${task.status}.`, 409);
-  const github = records.find((r) => isGithub(r.target))!; const figma = records.find((r) => r.target === "nexa-figma")!;
+  const github = records.find((r) => isGithub(r.target))!; const figma = records.find((r) => r.target === "nexa-figma" || isFigmaFile(r.target))!;
   const githubEvidence = JSON.parse(github.evidence) as { branch: string; label?: string; repo: string; baseBranch: string; baseShaBefore: string; pullRequest: { number: number; url: string }; changedFiles: string[] };
   const branch = githubEvidence.branch; const realPull = githubEvidence.label === "real GitHub pull request";
-  const [githubReport, figmaReport] = await Promise.all([realPull ? verifyGithubReal({ brandId: ctx.brandId, taskId: task.id, resourceId: github.resource_id, evidence: githubEvidence }) : verifyGithubFixture({ taskId: task.id, resourceId: github.resource_id, branch, workspaceKey: ctx.brandId }), verifyFigmaFixture({ taskId: task.id, resourceId: figma.resource_id, workspaceKey: ctx.brandId })]);
+  const [githubReport, figmaReport] = await Promise.all([realPull ? verifyGithubReal({ brandId: ctx.brandId, taskId: task.id, resourceId: github.resource_id, evidence: githubEvidence }) : verifyGithubFixture({ taskId: task.id, resourceId: github.resource_id, branch, workspaceKey: ctx.brandId }), isFigmaFile(figma.target) ? Promise.resolve(JSON.parse((db().prepare("SELECT verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, figma.resource_id) as { verification_evidence: string }).verification_evidence) as { verified: boolean }) : verifyFigmaFixture({ taskId: task.id, resourceId: figma.resource_id, workspaceKey: ctx.brandId })]);
   updateTaskResource({ taskId: task.id, resourceId: github.resource_id, status: githubReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: githubReport, error: githubReport.verified ? undefined : "GitHub QA failed.", actor: "Brand QA" });
-  updateTaskResource({ taskId: task.id, resourceId: figma.resource_id, status: figmaReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: figmaReport, error: figmaReport.verified ? undefined : "Figma fixture QA failed.", actor: "Brand QA" });
+  if (!isFigmaFile(figma.target)) updateTaskResource({ taskId: task.id, resourceId: figma.resource_id, status: figmaReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: figmaReport, error: figmaReport.verified ? undefined : "Figma fixture QA failed.", actor: "Brand QA" });
   const finished = finishVerification(task.id);
   return { status: finished.status, github: githubReport, figma: figmaReport, humanFollowUp: realPull ? `Review and merge the pull request yourself: ${githubEvidence.pullRequest.url}` : "Fixture only: there is no real pull request to merge." };
 }
@@ -173,4 +183,40 @@ export function chatApproval(ctx: Ctx, input: { taskId: string; senderHandle: st
   })();
   recordActivity({ brandId: ctx.brandId, taskId: task.id, agentName: `Human: ${identity.name}`, activityType: "approval_decision", status: `${decision.toUpperCase()} (by chat reply, relayed by Brand Director${genericSender ? "; sender reported only as \"user\", attributed to the sole workspace owner" : ""}; not login-verified)`, messageReference: ref });
   return { decision, decidedOperations: pending.length, decidedBy: identity.name, channel: "chat_relayed", next: decision === "approved" ? "Now mention the Design and Implementation agents to execute." : "Report the rejection and stop." };
+}
+
+export function readyForApproval(ctx: Ctx, taskId: string) {
+  requireRole(ctx.role, ["director"], "move a task to approval");
+  const task = taskRow(taskId, ctx.brandId);
+  if (task.status === "AWAITING_APPROVAL") return taskState(ctx, taskId);
+  if (task.status !== "PLAN_READY") throw new AgentApiError(`Task is ${task.status}; only a ready plan can move to approval.`, 409);
+  const pending = (db().prepare("SELECT COUNT(*) AS n FROM approvals WHERE task_id = ? AND decision = 'pending'").get(taskId) as { n: number }).n;
+  if (pending === 0) throw new AgentApiError("There is nothing to approve yet.", 409);
+  transitionTask(taskId, "AWAITING_APPROVAL", agentDisplayName[ctx.role]);
+  return taskState(ctx, taskId);
+}
+
+/** QA reports its independent re-read of the Figma file (done through the Figma MCP). Markpath decides pass/fail from the counts; it does not trust a claimed "verified". */
+export function figmaVerification(ctx: Ctx, input: { taskId: string; counts: { colour: number; typeface: number; radius: number }; checkedNodeIds?: string[]; note?: string }) {
+  requireRole(ctx.role, ["qa"], "report a Figma verification");
+  const task = taskRow(input.taskId, ctx.brandId);
+  const resource = db().prepare("SELECT r.id FROM task_resources tr JOIN resources r ON r.id = tr.resource_id WHERE tr.task_id = ? AND r.external_resource_id LIKE 'figma-plugin:%'").get(task.id) as { id: string } | undefined;
+  if (!resource) throw new AgentApiError("This task has no Figma file edited through the MCP.", 404);
+  const executed = db().prepare("SELECT 1 FROM execution_records WHERE task_id = ? AND resource_id = ? AND mode IN ('figma_mcp', 'figma_plugin')").get(task.id, resource.id);
+  if (!executed) throw new AgentApiError("The Design agent has not applied the Figma change yet, so there is nothing to verify.", 409);
+  const remaining = input.counts.colour + input.counts.typeface + input.counts.radius; const verified = remaining === 0;
+  const evidence = { verified, label: "independent re-read of the Figma file by Brand QA through the Figma MCP; reported by the agent, not re-checked by Markpath", remainingOutdated: remaining, counts: input.counts, checkedNodeIds: (input.checkedNodeIds ?? []).slice(0, 40), note: input.note?.slice(0, 300) };
+  updateTaskResource({ taskId: task.id, resourceId: resource.id, status: verified ? "COMPLETED" : "FAILED", verificationEvidence: evidence, error: verified ? undefined : `${remaining} outdated value(s) remain in Figma.`, actor: "Brand QA" });
+  return { verified, remainingOutdated: remaining, next: verified ? "Now call POST /api/agent/verify to verify the other resources and finish the task." : "Do not finish the task; report the remaining outdated values." };
+}
+
+/** The read-only inspect script or the approved-change apply script for the Figma MCP, with this workspace's brand values filled in. */
+export async function figmaScript(ctx: Ctx, name: "inspect" | "apply") {
+  requireRole(ctx.role, name === "inspect" ? ["design", "qa"] : ["design"], `fetch the ${name} script`);
+  const row = db().prepare("SELECT brand_specification FROM brands WHERE id = ?").get(ctx.brandId) as { brand_specification: string } | undefined;
+  const values = row ? brandValuesFromSpec(row.brand_specification) : null;
+  if (!values) throw new AgentApiError("The brand specification has no approved colour, typeface and radius rules yet.", 409);
+  const body = await readFile(join(process.cwd(), "src", "server", "agents", "figma-scripts", `${name}.js`), "utf8");
+  const config = name === "inspect" ? { legacy: values.legacy } : { from: values.legacy, to: values.expected };
+  return { name, instructions: "Pass `code` verbatim as the `code` argument of the Figma MCP use_figma tool, with the fileKey of the file you were given. Do not edit it.", code: `const CONFIG = ${JSON.stringify(config)};\n${body}` };
 }

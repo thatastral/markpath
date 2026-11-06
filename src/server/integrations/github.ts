@@ -47,16 +47,21 @@ export async function selectGithubRepo(brandId: string, fullName: string, fetchI
   const repo = await new GithubClient(c.token, fetchImpl).repo(fullName);
   if (!repo.permissions?.push) throw new GithubError("You do not have push access to that repository, so Markpath cannot open a pull request there.", 403);
   updateIntegrationMeta(brandId, "github", { login: c.login, repo: repo.full_name, defaultBranch: repo.default_branch });
-  const integration = db().prepare("SELECT id FROM integrations WHERE brand_id = ? AND provider = 'github'").get(brandId) as { id: string } | undefined;
-  const externalId = `gh:${repo.full_name}`;
-  let resource = db().prepare("SELECT id FROM resources WHERE brand_id = ? AND external_resource_id = ?").get(brandId, externalId) as { id: string } | undefined;
-  if (!resource) { resource = { id: randomUUID() }; db().prepare(`INSERT INTO resources (id, brand_id, integration_id, resource_type, external_resource_id, resource_name, resource_url, last_inspected_at, status, created_at) VALUES (?, ?, ?, 'github_repo', ?, ?, ?, NULL, 'uninspected', ?)`).run(resource.id, brandId, integration?.id ?? null, externalId, repo.full_name, `https://github.com/${repo.full_name}`, now()); }
+  const resourceId = ensureRepoResource(brandId, repo.full_name);
   setIntegration(brandId, "connected", "real", c.login);
-  return { repo: repo.full_name, defaultBranch: repo.default_branch, resourceId: resource.id };
+  return { repo: repo.full_name, defaultBranch: repo.default_branch, resourceId };
 }
+function ensureRepoResource(brandId: string, fullName: string) {
+  const integration = db().prepare("SELECT id FROM integrations WHERE brand_id = ? AND provider = 'github'").get(brandId) as { id: string } | undefined;
+  const externalId = `gh:${fullName}`;
+  let resource = db().prepare("SELECT id FROM resources WHERE brand_id = ? AND external_resource_id = ?").get(brandId, externalId) as { id: string } | undefined;
+  if (!resource) { resource = { id: randomUUID() }; db().prepare(`INSERT INTO resources (id, brand_id, integration_id, resource_type, external_resource_id, resource_name, resource_url, last_inspected_at, status, created_at) VALUES (?, ?, ?, 'github_repo', ?, ?, ?, NULL, 'uninspected', ?)`).run(resource.id, brandId, integration?.id ?? null, externalId, fullName, `https://github.com/${fullName}`, now()); }
+  return resource.id;
+}
+/** The selected repository's resource row. Recreated if a demo reset removed it, so a chosen repository is never silently dropped. */
 export function realGithubResourceId(brandId: string) {
   const c = getGithubConfig(brandId); if (!c?.repo) return null;
-  return (db().prepare("SELECT id FROM resources WHERE brand_id = ? AND external_resource_id = ?").get(brandId, `gh:${c.repo}`) as { id: string } | undefined)?.id ?? null;
+  return ensureRepoResource(brandId, c.repo);
 }
 function specValues(brandId: string) {
   const row = db().prepare("SELECT brand_specification, brand_version, name FROM brands WHERE id = ?").get(brandId) as { brand_specification: string; brand_version: string; name: string } | undefined;
