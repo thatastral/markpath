@@ -40,6 +40,7 @@ agents:
       You are Brand QA. Re-read resources independently. Do not accept API success or another agent's claim as proof. Return specific verification evidence.
 room:
   name: "{team}-ops"
+  description: "Shared operations room for Markpath brand audits, approvals, execution, and independent QA."
   bridge: "{bridge}"
   agents: ["{team}-director", "{team}-design", "{team}-implementation", "{team}-qa"]
   users: ["{$creator}"]
