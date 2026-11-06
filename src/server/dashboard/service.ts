@@ -1,0 +1,82 @@
+import type Database from "better-sqlite3";
+
+export type OverviewData = {
+  findingCount: number;
+  criticalOrHighCount: number;
+  pendingApprovalCount: number;
+  completedTaskCount: number;
+  connectedPlatformCount: number;
+  recentActivity: ActivityRow[];
+};
+
+export type FindingRow = {
+  id: string; provider: string | null; resource_name: string; resource_url: string | null;
+  rule_id: string; detected_value: string | null; expected_value: string | null;
+  severity: string; confidence: number; evidence: string; recommended_action: string;
+  classification: string; status: string; created_at: string;
+};
+
+export type ApprovalRow = {
+  id: string; decision: string; approved_action: string; created_at: string;
+  task_id: string; task_description: string; resource_name: string;
+};
+
+export type ActivityRow = {
+  id: string; agent_name: string; activity_type: string; status: string;
+  message_reference: string | null; created_at: string; task_description: string | null;
+};
+
+export type IntegrationRow = { provider: string; connection_status: string; mode: string; last_checked_at: string | null };
+
+function count(db: Database.Database, sql: string, brandId: string) {
+  return (db.prepare(sql).get(brandId) as { count: number }).count;
+}
+
+export function getOverviewData(db: Database.Database, brandId: string): OverviewData {
+  return {
+    findingCount: count(db, "SELECT COUNT(*) AS count FROM findings WHERE brand_id = ? AND classification != 'compliant'", brandId),
+    criticalOrHighCount: count(db, "SELECT COUNT(*) AS count FROM findings WHERE brand_id = ? AND severity IN ('critical', 'high') AND classification != 'compliant'", brandId),
+    pendingApprovalCount: count(db, "SELECT COUNT(*) AS count FROM approvals a JOIN tasks t ON t.id = a.task_id WHERE t.brand_id = ? AND a.decision = 'pending'", brandId),
+    completedTaskCount: count(db, "SELECT COUNT(*) AS count FROM tasks WHERE brand_id = ? AND status IN ('COMPLETED', 'PARTIALLY_COMPLETED')", brandId),
+    connectedPlatformCount: count(db, "SELECT COUNT(*) AS count FROM integrations WHERE brand_id = ? AND connection_status = 'connected'", brandId),
+    recentActivity: getActivity(db, brandId, 5),
+  };
+}
+
+export function getIntegrations(db: Database.Database, brandId: string) {
+  return db.prepare("SELECT provider, connection_status, mode, last_checked_at FROM integrations WHERE brand_id = ? ORDER BY provider").all(brandId) as IntegrationRow[];
+}
+
+export function getFindings(db: Database.Database, brandId: string, filters: { provider?: string; severity?: string; status?: string } = {}) {
+  const clauses = ["f.brand_id = ?"];
+  const values: string[] = [brandId];
+  if (filters.provider) { clauses.push("i.provider = ?"); values.push(filters.provider); }
+  if (filters.severity) { clauses.push("f.severity = ?"); values.push(filters.severity); }
+  if (filters.status) { clauses.push("f.status = ?"); values.push(filters.status); }
+  return db.prepare(`SELECT f.id, i.provider, r.resource_name, r.resource_url, f.rule_id, f.detected_value, f.expected_value,
+    f.severity, f.confidence, f.evidence, f.recommended_action, f.classification, f.status, f.created_at
+    FROM findings f JOIN resources r ON r.id = f.resource_id LEFT JOIN integrations i ON i.id = r.integration_id
+    WHERE ${clauses.join(" AND ")} ORDER BY CASE f.severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END DESC, f.created_at DESC`).all(...values) as FindingRow[];
+}
+
+export function getApprovals(db: Database.Database, brandId: string) {
+  return db.prepare(`SELECT a.id, a.decision, a.approved_action, a.created_at, t.id AS task_id, t.description AS task_description, r.resource_name
+    FROM approvals a JOIN tasks t ON t.id = a.task_id JOIN resources r ON r.id = a.resource_id
+    WHERE t.brand_id = ? ORDER BY CASE a.decision WHEN 'pending' THEN 0 ELSE 1 END, a.created_at DESC`).all(brandId) as ApprovalRow[];
+}
+
+export function getActivity(db: Database.Database, brandId: string, limit = 50) {
+  return db.prepare(`SELECT a.id, a.agent_name, a.activity_type, a.status, a.message_reference, a.created_at, t.description AS task_description
+    FROM agent_activity a LEFT JOIN tasks t ON t.id = a.task_id WHERE a.brand_id = ? ORDER BY a.created_at DESC LIMIT ?`).all(brandId, limit) as ActivityRow[];
+}
+
+export function decideApprovalForOwner(db: Database.Database, input: { approvalId: string; userId: string; decision: "approved" | "rejected" }) {
+  const approval = db.prepare(`SELECT a.task_id, t.brand_id FROM approvals a JOIN tasks t ON t.id = a.task_id WHERE a.id = ? AND a.decision = 'pending'`).get(input.approvalId) as { task_id: string; brand_id: string } | undefined;
+  if (!approval) throw new Error("Pending approval not found.");
+  const membership = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(input.userId, approval.brand_id) as { role: string } | undefined;
+  if (membership?.role !== "owner") throw new Error("Only the workspace owner can decide this approval.");
+  db.transaction(() => {
+    db.prepare("UPDATE approvals SET decision = ?, approved_by = ? WHERE id = ?").run(input.decision, input.userId, input.approvalId);
+    db.prepare("UPDATE tasks SET approval_status = ? WHERE id = ?").run(input.decision, approval.task_id);
+  })();
+}
