@@ -1,0 +1,6 @@
+{
+  "name": "Nexa design system — legacy",
+  "variables": [{ "id": "primary-blue", "name": "Primary/Blue", "value": "#164B9B" }],
+  "styles": [{ "id": "body", "name": "Body", "fontFamily": "Inter" }, { "id": "button", "name": "Button radius", "radius": "4px" }],
+  "nodes": [{ "id": "logo-legacy", "name": "Nexa legacy logo", "type": "COMPONENT" }]
+}
