@@ -60,6 +60,18 @@ export function initializeSchema(db: Database.Database) {
       activity_type TEXT NOT NULL, message_reference TEXT, status TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS brand_guidelines (
+      id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+      original_name TEXT NOT NULL, storage_path TEXT NOT NULL, content_type TEXT NOT NULL,
+      extraction_mode TEXT NOT NULL, created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS brand_spec_versions (
+      id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+      guideline_id TEXT REFERENCES brand_guidelines(id) ON DELETE SET NULL,
+      version TEXT NOT NULL, specification TEXT NOT NULL, status TEXT NOT NULL,
+      source_type TEXT NOT NULL, created_by TEXT REFERENCES users(id), created_at TEXT NOT NULL,
+      approved_at TEXT, approved_by TEXT REFERENCES users(id)
+    );
     CREATE INDEX IF NOT EXISTS idx_memberships_brand ON memberships(brand_id);
     CREATE INDEX IF NOT EXISTS idx_resources_brand ON resources(brand_id);
     CREATE INDEX IF NOT EXISTS idx_findings_resource ON findings(resource_id);
@@ -67,5 +79,6 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_approvals_binding ON approvals(task_id, resource_id, operation_fingerprint);
     CREATE INDEX IF NOT EXISTS idx_execution_task ON execution_records(task_id);
     CREATE INDEX IF NOT EXISTS idx_activity_brand ON agent_activity(brand_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_brand_spec_versions_brand ON brand_spec_versions(brand_id, created_at DESC);
   `);
 }
