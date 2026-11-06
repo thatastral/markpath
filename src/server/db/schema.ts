@@ -72,6 +72,13 @@ export function initializeSchema(db: Database.Database) {
       source_type TEXT NOT NULL, created_by TEXT REFERENCES users(id), created_at TEXT NOT NULL,
       approved_at TEXT, approved_by TEXT REFERENCES users(id)
     );
+    CREATE TABLE IF NOT EXISTS task_resources (
+      id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+      status TEXT NOT NULL, required INTEGER NOT NULL DEFAULT 1,
+      verification_evidence TEXT, error TEXT, created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL, UNIQUE(task_id, resource_id)
+    );
     CREATE INDEX IF NOT EXISTS idx_memberships_brand ON memberships(brand_id);
     CREATE INDEX IF NOT EXISTS idx_resources_brand ON resources(brand_id);
     CREATE INDEX IF NOT EXISTS idx_findings_resource ON findings(resource_id);
@@ -80,5 +87,6 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_execution_task ON execution_records(task_id);
     CREATE INDEX IF NOT EXISTS idx_activity_brand ON agent_activity(brand_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_brand_spec_versions_brand ON brand_spec_versions(brand_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_task_resources_task ON task_resources(task_id, status);
   `);
 }
