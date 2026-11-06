@@ -9,3 +9,5 @@
 - Slice 2 added a source-linked, versioned fixture-extraction and approval workflow; verification passed with 4 tests.
 - Slice 3 added the multi-resource task state machine, idempotency, approval binding, and audit records; verification passed with 8 tests.
 - Slice 4 added deterministic fixture audits for GitHub-style tokens and Figma snapshots; verification passed with 10 tests.
+- Slice 5 added guarded fixture executors; unapproved operations are refused and all simulated evidence is labelled honestly.
+- Slice 6 added independent fixture QA verification; 12 tests, typecheck, and production build pass.
