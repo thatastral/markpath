@@ -15,3 +15,7 @@ Docker, Switch Console, and a local Switch server are not installed or validated
 ## 2026-11-06 — Switch code before live service
 
 The room template, server-side agent token boundary, and Switch health interface are implemented and unit-tested. They are not evidence of a Switch connection. Live status remains `Not connected` until Docker, Console, local server, `/health`, and an addressed room reply are all validated.
+
+## 2026-11-06 — Switch health validated, agent reply pending
+
+The local Switch core service at `http://127.0.0.1:57888` returned `{"status":"ok"}` from `/health`. Markpath has this local base URL in ignored `.env.local` and can verify it through `/api/switch/health`. This is not enough to mark Switch as connected: a verified, addressed reply from the configured Markpath room is still required.
