@@ -19,3 +19,7 @@ The room template, server-side agent token boundary, and Switch health interface
 ## 2026-11-06 — Switch health validated, agent reply pending
 
 The local Switch core service at `http://127.0.0.1:57888` returned `{"status":"ok"}` from `/health`. Markpath has this local base URL in ignored `.env.local` and can verify it through `/api/switch/health`. This is not enough to mark Switch as connected: a verified, addressed reply from the configured Markpath room is still required.
+
+## 2026-11-06 — Live-server-safe demo reset
+
+`demo:reset` clears Markpath tables in a SQLite transaction instead of deleting the SQLite file. Removing a file while Next's dev process held an open WAL caused a short-read I/O failure. The reset now preserves the active database file and removes only generated fixture workspaces and uploads before reseeding known demo records.

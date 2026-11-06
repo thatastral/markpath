@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:seed": "tsx src/server/db/seed.ts",
-    "demo:reset": "tsx src/server/db/seed.ts --reset"
+    "demo:reset": "tsx src/server/demo/cli.ts reset",
+    "demo:complete": "tsx src/server/demo/cli.ts complete"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
