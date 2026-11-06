@@ -52,13 +52,13 @@ export function transitionTask(taskId: string, next: TaskState, agentName: strin
   return updated;
 }
 
-export function updateTaskResource(input: { taskId: string; resourceId: string; status: TaskState; verificationEvidence?: Record<string, unknown>; error?: string }) {
+export function updateTaskResource(input: { taskId: string; resourceId: string; status: TaskState; verificationEvidence?: Record<string, unknown>; error?: string; actor?: string }) {
   const db = getDatabase(); const task = taskById(input.taskId);
   const existing = db.prepare("SELECT id, resource_id, status, required, verification_evidence, error FROM task_resources WHERE task_id = ? AND resource_id = ?").get(input.taskId, input.resourceId) as TaskResourceRow | undefined;
   if (!existing) throw new Error("Task resource not found.");
   db.prepare("UPDATE task_resources SET status = ?, verification_evidence = ?, error = ?, updated_at = ? WHERE id = ?")
     .run(input.status, input.verificationEvidence ? JSON.stringify(input.verificationEvidence) : null, input.error ?? null, now(), existing.id);
-  appendActivity(task, "Brand QA", "resource_transition", input.status);
+  appendActivity(task, input.actor ?? "Brand QA", "resource_transition", input.status);
 }
 
 export function finishVerification(taskId: string) {
@@ -71,7 +71,7 @@ export function finishVerification(taskId: string) {
   return transitionTask(task.id, allVerified ? "COMPLETED" : "PARTIALLY_COMPLETED", "Brand QA");
 }
 
-export function requestApproval(taskId: string, requestedBy: string, operation: ProposedOperation) {
+export function requestApproval(taskId: string, requestedBy: string, operation: ProposedOperation, actor = "Brand Director") {
   const db = getDatabase(); const task = taskById(taskId);
   if (task.status !== "PLAN_READY" && task.status !== "AWAITING_APPROVAL") throw new Error("Approvals can only be requested for a ready plan.");
   const fingerprint = operationFingerprint(operation);
@@ -81,7 +81,7 @@ export function requestApproval(taskId: string, requestedBy: string, operation: 
   db.prepare(`INSERT INTO approvals (id, task_id, resource_id, requested_by, decision, approved_action, operation_fingerprint, created_at)
     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`).run(id, task.id, operation.resourceId, requestedBy, JSON.stringify(operation), fingerprint, now());
   db.prepare("UPDATE tasks SET approval_status = 'awaiting_approval' WHERE id = ?").run(task.id);
-  appendActivity(task, "Brand Director", "approval_requested", "AWAITING_APPROVAL");
+  appendActivity(task, actor, "approval_requested", "AWAITING_APPROVAL");
   return id;
 }
 
@@ -92,12 +92,22 @@ export function decideApproval(input: { approvalId: string; userId: string; deci
   db.prepare("UPDATE approvals SET decision = ?, approved_by = ? WHERE id = ?").run(input.decision, input.userId, input.approvalId);
   const task = taskById(approval.task_id);
   db.prepare("UPDATE tasks SET approval_status = ? WHERE id = ?").run(input.decision, task.id);
-  appendActivity(task, "Brand Director", "approval_decision", input.decision.toUpperCase());
+  appendActivity(task, "Human approver", "approval_decision", input.decision.toUpperCase());
 }
 
 export function isApprovedOperation(taskId: string, operation: ProposedOperation) {
   const db = getDatabase(); const fingerprint = operationFingerprint(operation);
-  const row = db.prepare(`SELECT id FROM approvals WHERE task_id = ? AND resource_id = ? AND operation_fingerprint = ? AND decision = 'approved'`)
+  const row = db.prepare(`SELECT id FROM approvals WHERE task_id = ? AND resource_id = ? AND operation_fingerprint = ? AND decision = 'approved' AND consumed_at IS NULL`)
     .get(taskId, operation.resourceId, fingerprint) as { id: string } | undefined;
   return row?.id ?? null;
+}
+
+export function consumeApproval(approvalId: string) {
+  const result = getDatabase().prepare("UPDATE approvals SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL").run(now(), approvalId);
+  if (result.changes !== 1) throw new Error("Approval was already used or does not exist.");
+}
+
+export function recordActivity(input: { brandId: string; taskId?: string | null; agentName: string; activityType: string; status: string; messageReference?: string | null }) {
+  getDatabase().prepare(`INSERT INTO agent_activity (id, brand_id, task_id, agent_name, activity_type, message_reference, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(randomUUID(), input.brandId, input.taskId ?? null, input.agentName, input.activityType, input.messageReference ?? null, input.status, now());
 }

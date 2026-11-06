@@ -15,3 +15,13 @@
 - Corrected the Switch Console template to use the installed version-1 parser shape: required room description, private channel, room instructions, and top-level kickoff. The YAML validates against the locally installed Switch parser. Mattermost remains healthy, but Switch Core was not running when last checked, so no agent reply has been verified.
 - Slice 8 added the authenticated five-page dashboard: overview, brand profile, integrations, issues and resource-bound approvals, and agent activity. The dashboard displays only persisted evidence and explicitly labels fixture or unverified integration state. `npm run typecheck`, `npm test` (14 tests), and `npm run build` pass. Browser smoke requests could not attach to the already-running local dev process from this shell, so no browser-level result is claimed.
 - Slice 9 added the repeatable Nexa demo path. `npm run demo:reset` stages an approved specification, six confirmed findings, and two pending exact approvals; `npm run demo:complete` refuses before approval and, after both decisions, completed the local fixture correction and independent QA path. Reset was revised to clear tables transactionally after a development-server SQLite WAL collision; it now works while staging the dashboard demo state.
+
+## 2026-11-06 (evening)
+- Reviewed Codex slices 1-9; added the agent tool API, per-agent tokens, honest activity attribution, single-use approvals, session hardening, safer token replacement, Switch room-verification display, token script and template instructions that call the API. 17 tests, typecheck and production build pass; HTTP smoke test of the API passed. Switch room itself still unverified. Figma plugin not yet built.
+- Figma plugin and `/api/plugin/*` backend added (inspect, request approval, apply approved, report). 18 tests pass. The plugin itself has never been run in Figma.
+- Added approve-by-chat-reply (relayed by the Director, labelled as not login-verified), one-click approval page, server-side agent playbooks, stable per-workspace room template, sign-up, create and switch workspace, setup checklist, chat-handle setting. 25 tests pass.
+
+## 2026-11-07
+- GitHub: registered the Markpath OAuth app (Device Flow). Built Connect GitHub (device flow), repository picker, sample-repo creation, real scan, real branch + pull request after approval, independent API-based QA, secrets encrypted at rest. Verified against an in-memory fake of the GitHub API (28 tests pass). Not yet run against real GitHub.
+- Figma: plugin key card on Integrations. Plugin still untested in Figma.
+- Open: live room test of approve-by-chat; live GitHub test (needs the owner to authorize the device code); commit; public repo; demo video; blog; submission portal unknown.

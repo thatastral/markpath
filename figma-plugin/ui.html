@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body { font: 12px/1.45 system-ui, sans-serif; margin: 12px; color: #111; }
+  h1 { font-size: 14px; margin: 0 0 8px; }
+  label { display: block; margin: 8px 0 2px; font-weight: 600; }
+  input { width: 100%; box-sizing: border-box; padding: 6px; }
+  button { margin: 8px 6px 0 0; padding: 6px 10px; cursor: pointer; }
+  #log { margin-top: 10px; white-space: pre-wrap; background: #f4f4f4; padding: 8px; border-radius: 6px; max-height: 240px; overflow: auto; }
+  small { color: #666; }
+</style>
+<h1>Markpath brand check</h1>
+<small>Applies only changes a workspace owner approved in the Markpath dashboard. Not an unattended service; current page only.</small>
+<label for="url">Markpath URL</label><input id="url" value="http://localhost:3000">
+<label for="token">Plugin token</label><input id="token" type="password" placeholder="from ~/.markpath/plugin-token">
+<div>
+  <button id="inspect">1. Inspect page</button>
+  <button id="request" disabled>2. Request approval</button>
+  <button id="apply">3. Apply approved</button>
+</div>
+<div id="log">Ready.</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const log = (text) => { $("log").textContent = text; };
+  let spec = null, lastSummary = null, lastFile = "";
+  async function api(path, options = {}) {
+    const response = await fetch($("url").value.replace(/\/$/, "") + path, { ...options, headers: { Authorization: "Bearer " + $("token").value, "Content-Type": "application/json" } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "HTTP " + response.status);
+    return data;
+  }
+  const post = (type, extra) => parent.postMessage({ pluginMessage: { type, ...extra } }, "*");
+  $("inspect").onclick = async () => { try { log("Loading approved brand rules…"); spec = await api("/api/plugin/spec"); post("inspect", { expected: spec.expected, legacy: spec.legacy }); } catch (e) { log("Error: " + e.message); } };
+  $("request").onclick = async () => {
+    try {
+      const names = { fill: "fill colour", font: "font", radius: "corner radius", variable: "colour variable" };
+      const to = { fill: spec.expected.primaryColour, font: spec.expected.primaryTypeface, radius: spec.expected.buttonRadius, variable: spec.expected.primaryColour };
+      const from = { fill: spec.legacy.primaryColour, font: spec.legacy.primaryTypeface, radius: spec.legacy.buttonRadius, variable: spec.legacy.primaryColour };
+      const changes = Object.keys(lastSummary).filter((k) => lastSummary[k] > 0).map((k) => ({ property: k, from: from[k], to: to[k], count: lastSummary[k] }));
+      const result = await api("/api/plugin/request-approval", { method: "POST", body: JSON.stringify({ fileName: lastFile, changes }) });
+      log("Approval requested (" + changes.map((c) => c.count + " " + names[c.property]).join(", ") + ").\n" + result.where);
+    } catch (e) { log("Error: " + e.message); }
+  };
+  $("apply").onclick = async () => {
+    try {
+      spec = spec || await api("/api/plugin/spec");
+      const { operations } = await api("/api/plugin/approved-operations");
+      const match = operations.find((o) => o.payload && o.payload.fileName === lastFile) || operations[0];
+      if (!match) return log("No approved operation. Request approval first, then ask the owner to approve it in the dashboard.");
+      post("apply", { approvalId: match.approvalId, expected: spec.expected, legacy: spec.legacy });
+    } catch (e) { log("Error: " + e.message); }
+  };
+  onmessage = async (event) => {
+    const msg = event.data.pluginMessage; if (!msg) return;
+    try {
+      if (msg.type === "findings") {
+        lastSummary = msg.summary; lastFile = msg.fileName;
+        const total = Object.values(msg.summary).reduce((a, b) => a + b, 0);
+        $("request").disabled = total === 0;
+        await api("/api/plugin/findings", { method: "POST", body: JSON.stringify({ fileName: msg.fileName, findings: msg.findings }) });
+        log(total === 0 ? "No outdated values found on this page." : total + " outdated value(s):\n" + msg.findings.slice(0, 40).map((f) => f.property + " · " + f.nodeName + ": " + f.detected + " → " + f.expected).join("\n"));
+      } else if (msg.type === "applied") {
+        await api("/api/plugin/execution", { method: "POST", body: JSON.stringify({ approvalId: msg.approvalId, before: msg.before, after: msg.after, reinspected: true, remainingOutdated: msg.remaining }) });
+        log("Applied and re-inspected in Figma. Remaining outdated: " + msg.remaining + (msg.failures.length ? "\nCould not change:\n" + msg.failures.join("\n") : "") + "\nReported to Markpath (not independently verified by QA).");
+      } else if (msg.type === "error") log("Plugin error: " + msg.message);
+    } catch (e) { log("Error: " + e.message); }
+  };
+</script>

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 
 export type OverviewData = {
@@ -75,8 +76,31 @@ export function decideApprovalForOwner(db: Database.Database, input: { approvalI
   if (!approval) throw new Error("Pending approval not found.");
   const membership = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(input.userId, approval.brand_id) as { role: string } | undefined;
   if (membership?.role !== "owner") throw new Error("Only the workspace owner can decide this approval.");
+  const user = db.prepare("SELECT name FROM users WHERE id = ?").get(input.userId) as { name: string } | undefined;
   db.transaction(() => {
-    db.prepare("UPDATE approvals SET decision = ?, approved_by = ? WHERE id = ?").run(input.decision, input.userId, input.approvalId);
+    db.prepare("UPDATE approvals SET decision = ?, approved_by = ?, decision_channel = 'dashboard' WHERE id = ?").run(input.decision, input.userId, input.approvalId);
     db.prepare("UPDATE tasks SET approval_status = ? WHERE id = ?").run(input.decision, approval.task_id);
+    db.prepare(`INSERT INTO agent_activity (id, brand_id, task_id, agent_name, activity_type, message_reference, status, created_at) VALUES (?, ?, ?, ?, 'approval_decision', NULL, ?, ?)`)
+      .run(randomUUID(), approval.brand_id, approval.task_id, `Human: ${user?.name ?? "approver"}`, input.decision.toUpperCase(), new Date().toISOString());
   })();
+}
+
+export function switchRoomReplyCount(db: Database.Database, brandId: string) {
+  return (db.prepare("SELECT COUNT(*) AS n FROM agent_activity WHERE brand_id = ? AND activity_type = 'room_message' AND message_reference IS NOT NULL").get(brandId) as { n: number }).n;
+}
+
+export function decideTaskApprovals(db: Database.Database, input: { taskId: string; userId: string; decision: "approved" | "rejected" }) {
+  const pending = db.prepare("SELECT id FROM approvals WHERE task_id = ? AND decision = 'pending'").all(input.taskId) as Array<{ id: string }>;
+  for (const approval of pending) decideApprovalForOwner(db, { approvalId: approval.id, userId: input.userId, decision: input.decision });
+  return pending.length;
+}
+
+export type TaskApprovalView = { task: { id: string; description: string; status: string; brand_id: string }; isOwner: boolean; items: Array<{ id: string; decision: string; resource_name: string; findings: Array<{ rule_id: string; detected_value: string | null; expected_value: string | null; severity: string }> }> };
+export function getTaskApprovalView(db: Database.Database, taskId: string, userId: string): TaskApprovalView | null {
+  const task = db.prepare("SELECT t.id, t.description, t.status, t.brand_id FROM tasks t JOIN memberships m ON m.brand_id = t.brand_id AND m.user_id = ? WHERE t.id = ?").get(userId, taskId) as TaskApprovalView["task"] | undefined;
+  if (!task) return null;
+  const role = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(userId, task.brand_id) as { role: string } | undefined;
+  const approvals = db.prepare("SELECT a.id, a.decision, a.resource_id, r.resource_name FROM approvals a JOIN resources r ON r.id = a.resource_id WHERE a.task_id = ? ORDER BY r.resource_name").all(taskId) as Array<{ id: string; decision: string; resource_id: string; resource_name: string }>;
+  const items = approvals.map((a) => ({ id: a.id, decision: a.decision, resource_name: a.resource_name, findings: db.prepare("SELECT rule_id, detected_value, expected_value, severity FROM findings WHERE resource_id = ? AND status = 'open' ORDER BY severity").all(a.resource_id) as TaskApprovalView["items"][number]["findings"] }));
+  return { task, isOwner: role?.role === "owner", items };
 }

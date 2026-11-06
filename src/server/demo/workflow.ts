@@ -14,8 +14,8 @@ import { verifyFigmaFixture, verifyGithubFixture } from "@/server/qa/fixture-ver
 import { addTaskResource, createTask, finishVerification, requestApproval, transitionTask, updateTaskResource } from "@/server/tasks/service";
 
 const now = () => new Date().toISOString();
-const githubOperation = (resourceId: string) => ({ resourceId, operation: "replace_tokens", payload: { values: "nexa-2.0" } });
-const figmaOperation = (resourceId: string) => ({ resourceId, operation: "replace_values", payload: { values: "nexa-2.0" } });
+export const githubOperation = (resourceId: string) => ({ resourceId, operation: "replace_tokens", payload: { values: "nexa-2.0" } });
+export const figmaOperation = (resourceId: string) => ({ resourceId, operation: "replace_values", payload: { values: "nexa-2.0" } });
 
 type DemoResources = { github: string; figma: string };
 
@@ -26,14 +26,14 @@ function integrationId(brandId: string, provider: "github" | "figma") {
   return integration.id;
 }
 
-function createResource(brandId: string, provider: "github" | "figma", name: string, url: string) {
+export function createResource(brandId: string, provider: "github" | "figma", name: string, url: string) {
   const db = getDatabase(); const id = randomUUID();
   db.prepare(`INSERT INTO resources (id, brand_id, integration_id, resource_type, external_resource_id, resource_name, resource_url, last_inspected_at, status, created_at)
     VALUES (?, ?, ?, 'fixture', ?, ?, ?, ?, 'audited', ?)`).run(id, brandId, integrationId(brandId, provider), provider === "github" ? "nexa-web" : "nexa-figma", name, url, now(), now());
   return id;
 }
 
-function persistFindings(brandId: string, resourceId: string, findings: AuditFinding[]) {
+export function persistFindings(brandId: string, resourceId: string, findings: AuditFinding[]) {
   const db = getDatabase(); const insert = db.prepare(`INSERT INTO findings (id, brand_id, resource_id, rule_id, detected_value, expected_value, severity, confidence, evidence, recommended_action, classification, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`);
   for (const finding of findings) insert.run(randomUUID(), brandId, resourceId, finding.ruleId, finding.detected, finding.expected, finding.severity, finding.confidence, finding.evidence, finding.recommendedAction, finding.classification, now());
@@ -47,10 +47,11 @@ async function removeDemoWorkingData() {
   ]);
 }
 
-export async function resetDemoWorkflow() {
+export async function resetDemoWorkflow(options: { stage?: "approvals" | "agents" } = {}) {
   const db = getDatabase(); initializeSchema(db); await removeDemoWorkingData();
   db.transaction(() => {
-    for (const table of ["agent_activity", "execution_records", "approvals", "task_resources", "findings", "tasks", "resources", "integrations", "brand_spec_versions", "brand_guidelines", "memberships", "brands", "users"]) db.prepare(`DELETE FROM ${table}`).run();
+    // Keeps the user, workspace, memberships, integrations and agent keys so a reset never invalidates agents already running in Switch.
+    for (const table of ["agent_activity", "execution_records", "approvals", "task_resources", "findings", "tasks", "resources", "brand_spec_versions", "brand_guidelines"]) db.prepare(`DELETE FROM ${table}`).run();
   })();
   const { user, brand } = await seedDatabase();
   const version = await ingestFixtureGuideline(brand.id, user.id);
@@ -59,6 +60,7 @@ export async function resetDemoWorkflow() {
     github: createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web"),
     figma: createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma"),
   };
+  if (options.stage === "agents") return { brand: brand.name, taskId: "", resources, findings: 0, approvals: 0 };
   const [githubFindings, figmaSnapshot] = await Promise.all([
     scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")),
     readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8"),

@@ -6,6 +6,8 @@ The Next.js dashboard owns approvals and the operational record. Switch Rooms is
 
 ## Run locally
 
+Requires Node 24 (`.nvmrc`). The `better-sqlite3` native module is built for the Node version that ran `npm install`; if you switch Node versions run `npm rebuild better-sqlite3`.
+
 ```bash
 cp .env.example .env.local
 npm install
@@ -39,7 +41,7 @@ The dashboard treats `/health` as server reachability only. Switch remains **not
 
 | Integration | Mode | Verified capability | Deliberate limitation |
 | --- | --- | --- | --- |
-| GitHub | Fixture | Local branch, commit, and independent diff verification | Not a GitHub PR; no real repository connection |
+| GitHub | Fixture by default; **real** once connected | Fixture: local branch, commit and diff check. Real: a branch and pull request on a repository you choose, verified by re-reading it through the GitHub API | Never merges or writes to the default branch. Uses an OAuth app with `repo` scope; a GitHub App with per-repository permissions is the production choice |
 | Figma | Fixture | Local snapshot scan, approved fixture write, and re-read QA | Not a Figma API write; plugin is not yet tested in Figma |
 | Canva | Disabled | None | Intentionally not connected |
 | Switch Rooms | Local adapter | Health adapter and Console-importable room template | Core must be running and an agent reply must still be verified |
@@ -53,3 +55,33 @@ npm run build
 ```
 
 See [docs/setup.md](docs/setup.md), [docs/demo-script.md](docs/demo-script.md), and [docs/architecture.md](docs/architecture.md) for details.
+
+## Agent-driven workflow (Switch is the control path)
+
+The four agents in the Switch room drive the workflow by calling Markpath's authenticated API. Each agent has its own token (`npm run agents:tokens` writes them to `.env.local` and `~/.markpath/agent-token-<role>`), so the audit trail names the real actor and roles are enforced:
+
+| Route | Who may call it | What it does |
+| --- | --- | --- |
+| `POST /api/agent/audit` | Director | Scans both fixtures, stores findings, creates the task, requests two resource-bound approvals |
+| `GET /api/agent/task` | any agent | Full task state, approvals, executions, verification |
+| `POST /api/agent/execute` | Implementation (`github`), Design (`figma`) | Runs the fixture executor only if that exact operation has an unused approved approval |
+| `POST /api/agent/verify` | QA | Independently re-reads both resources and finishes the task |
+| `POST /api/agent/room-event` | any agent | Records an addressed Switch message (room id and message id) in agent activity |
+
+Agents cannot approve. A human approves each operation in the dashboard (Issues & approvals). An approval is single use.
+
+Run it: `npm run demo:reset:agents`, `npm run agents:tokens`, `npm run dev`, create the Switch room from the template, then message `@markpath-director`. The fixture-only `npm run demo:reset` + `npm run demo:complete` path remains as a fallback that does not need Switch.
+
+## Figma plugin
+
+`figma-plugin/` (plain JavaScript, no build step) inspects the current page, requests a resource-bound approval, and applies only what the owner approved, then re-inspects and reports before/after. Backend routes live under `/api/plugin/*` and use `MARKPATH_PLUGIN_TOKEN`. **It is untested in Figma.** See `figma-plugin/README.md`.
+
+## Connecting GitHub (real pull requests)
+
+On **Integrations**, click **Connect GitHub**, open the link shown, and enter the code (GitHub device flow, so no callback URL or client secret). Then pick a repository, or click **Create a sample repo to try it**. The next audit reads that repository, and approved fixes open a real pull request. Markpath never merges and never writes to the default branch. QA then re-reads the pull request through the GitHub API and checks that only the intended files changed, the default branch is unchanged, and the pull request is open and unmerged. Without a connection the fixture path is used and labelled as a simulation.
+
+Set `GITHUB_CLIENT_ID` in `.env.local` to your own GitHub OAuth app's Client ID (enable Device Flow when registering it). Tokens are stored encrypted on the server.
+
+## Workspaces, chat approvals and the setup checklist
+
+Sign up, create a workspace (optionally with the Nexa demo brand), and switch between workspaces from the header. Each workspace has its own agent keys, chat room, GitHub connection and history. On Integrations, **Copy chat-room template** gives the Switch Console template with that workspace's keys; it is stable across resets. The Director posts a one-click approval link and also accepts `@<director> approve` or `reject` from the workspace owner's chat handle (recorded as relayed through chat, not login-verified).

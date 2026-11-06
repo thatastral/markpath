@@ -79,6 +79,21 @@ export function initializeSchema(db: Database.Database) {
       verification_evidence TEXT, error TEXT, created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL, UNIQUE(task_id, resource_id)
     );
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+      role TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, revoked_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS chat_identities (
+      id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, handle TEXT NOT NULL,
+      created_at TEXT NOT NULL, UNIQUE(brand_id, handle)
+    );
+    CREATE TABLE IF NOT EXISTS integration_secrets (
+      brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE, provider TEXT NOT NULL,
+      secret_enc TEXT NOT NULL, meta TEXT NOT NULL DEFAULT '{}', updated_at TEXT NOT NULL,
+      PRIMARY KEY (brand_id, provider)
+    );
+    CREATE INDEX IF NOT EXISTS idx_api_tokens_brand ON api_tokens(brand_id, role);
     CREATE INDEX IF NOT EXISTS idx_memberships_brand ON memberships(brand_id);
     CREATE INDEX IF NOT EXISTS idx_resources_brand ON resources(brand_id);
     CREATE INDEX IF NOT EXISTS idx_findings_resource ON findings(resource_id);
@@ -89,4 +104,11 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_brand_spec_versions_brand ON brand_spec_versions(brand_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_task_resources_task ON task_resources(task_id, status);
   `);
+  const approvalColumns = db.prepare("PRAGMA table_info(approvals)").all() as Array<{ name: string }>;
+  if (!approvalColumns.some((column) => column.name === "consumed_at")) db.exec("ALTER TABLE approvals ADD COLUMN consumed_at TEXT");
+  for (const column of ["decision_channel", "decision_ref"]) if (!approvalColumns.some((c) => c.name === column)) db.exec(`ALTER TABLE approvals ADD COLUMN ${column} TEXT`);
+  const brandColumns = db.prepare("PRAGMA table_info(brands)").all() as Array<{ name: string }>;
+  if (!brandColumns.some((c) => c.name === "team_prefix")) db.exec("ALTER TABLE brands ADD COLUMN team_prefix TEXT NOT NULL DEFAULT 'markpath'");
+  const tokenColumns = db.prepare("PRAGMA table_info(api_tokens)").all() as Array<{ name: string }>;
+  if (!tokenColumns.some((column) => column.name === "token_enc")) db.exec("ALTER TABLE api_tokens ADD COLUMN token_enc TEXT");
 }

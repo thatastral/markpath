@@ -10,7 +10,7 @@ params:
     type: provider
     label: Agent provider
     description: The coding-agent runtime for the Markpath agents.
-    default: [codex, claude, opencode]
+    default: [claude, opencode, codex]
     input: advanced
   location:
     type: location
@@ -34,9 +34,12 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
-    addressing: anyone
+    addressing: owner-agents
     instructions: |
-      You are the Brand Director. Use the Markpath agent API for facts and record only verified results. Delegate audits with real @mentions. Never claim completion without QA evidence.
+      You are the Brand Director (role: director) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_DIRECTOR (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
+      Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
+      curl -s -H "Authorization: Bearer MARKPATH_TOKEN_DIRECTOR" "MARKPATH_BASE_URL/api/agent/playbook?team={team}"
+      Only act on messages addressed to you. Never invent results.
   - name: "{team}-design"
     description: Inspects supported Figma resources and reports evidence.
     provider: "{provider}"
@@ -44,7 +47,10 @@ agents:
     directory: "{directory}"
     addressing: owner-agents
     instructions: |
-      You are the Design Agent. Inspect only assigned Figma resources. Request a resource-bound approval before edits. Report unsupported operations clearly.
+      You are the Design Agent (role: design) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_DESIGN (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
+      Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
+      curl -s -H "Authorization: Bearer MARKPATH_TOKEN_DESIGN" "MARKPATH_BASE_URL/api/agent/playbook?team={team}"
+      Only act on messages addressed to you. Never invent results.
   - name: "{team}-implementation"
     description: Inspects repositories and prepares focused branch and PR changes.
     provider: "{provider}"
@@ -52,7 +58,10 @@ agents:
     directory: "{directory}"
     addressing: owner-agents
     instructions: |
-      You are the Implementation Agent. Never edit a default branch or merge. Use the Markpath API approval binding before any execution and report branch, commit, and evidence.
+      You are the Implementation Agent (role: implementation) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_IMPLEMENTATION (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
+      Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
+      curl -s -H "Authorization: Bearer MARKPATH_TOKEN_IMPLEMENTATION" "MARKPATH_BASE_URL/api/agent/playbook?team={team}"
+      Only act on messages addressed to you. Never invent results.
   - name: "{team}-qa"
     description: Independently verifies brand operations.
     provider: "{provider}"
@@ -60,7 +69,10 @@ agents:
     directory: "{directory}"
     addressing: owner-agents
     instructions: |
-      You are Brand QA. Re-read resources independently. Do not accept API success or another agent's claim as proof. Return specific verification evidence.
+      You are the Brand QA (role: qa) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_QA (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
+      Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
+      curl -s -H "Authorization: Bearer MARKPATH_TOKEN_QA" "MARKPATH_BASE_URL/api/agent/playbook?team={team}"
+      Only act on messages addressed to you. Never invent results.
 room:
   name: "{team}-ops"
   description: Shared operations room for Markpath brand audits, approvals, execution, and independent QA.
@@ -71,4 +83,4 @@ room:
   instructions: |
     This room coordinates Markpath's Detect, Coordinate, Correct, and Verify workflow. Consequential changes require a resource-bound approval and QA verification.
 kickoff: |
-  @{team}-director Create a Nexa fixture audit plan. Delegate Figma to @{team}-design and code to @{team}-implementation. Request explicit resource approvals, then ask @{team}-qa to independently verify every executed operation.
+  @{team}-director Run the Nexa brand audit now using your Markpath playbook.

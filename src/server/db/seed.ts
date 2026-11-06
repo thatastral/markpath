@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomUUID } from "node:crypto";
 import { existsSync, unlinkSync } from "node:fs";
 import { getDatabase, databasePath, closeDatabase } from "./client";
 import { initializeSchema } from "./schema";
@@ -21,6 +22,8 @@ export async function seedDatabase(path?: string, reset = false) {
   const existingBrand = db.prepare("SELECT id, name FROM brands WHERE name = ?").get("Nexa") as { id: string; name: string } | undefined;
   const brand = existingBrand ?? createBrand(db, { name: "Nexa", description: "Demo fintech workspace for the Markpath fixture workflow.", approvalOwner: user.id });
   addMembership(db, user.id, brand.id, "owner");
+  // The bundled local Switch/Mattermost server has a single human, "switch-admin". Change it on the Integrations page.
+  db.prepare("INSERT OR IGNORE INTO chat_identities (id, brand_id, user_id, handle, created_at) VALUES (?, ?, ?, ?, ?)").run(randomUUID(), brand.id, user.id, "switch-admin", new Date().toISOString());
   createIntegrationPlaceholder(db, brand.id, "github", process.env.GITHUB_MODE ?? "fixture");
   createIntegrationPlaceholder(db, brand.id, "figma", process.env.FIGMA_MODE ?? "fixture");
   createIntegrationPlaceholder(db, brand.id, "canva", process.env.CANVA_MODE ?? "disabled");

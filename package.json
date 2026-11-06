@@ -11,7 +11,9 @@
     "test": "vitest run",
     "db:seed": "tsx src/server/db/seed.ts",
     "demo:reset": "tsx src/server/demo/cli.ts reset",
-    "demo:complete": "tsx src/server/demo/cli.ts complete"
+    "demo:complete": "tsx src/server/demo/cli.ts complete",
+    "agents:tokens": "node scripts/agent-tokens.mjs",
+    "demo:reset:agents": "tsx src/server/demo/cli.ts reset --agents"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
@@ -32,5 +34,8 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.6"
+  },
+  "engines": {
+    "node": ">=24 <26"
   }
 }

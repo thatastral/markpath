@@ -23,3 +23,12 @@ The local Switch core service at `http://127.0.0.1:57888` returned `{"status":"o
 ## 2026-11-06 — Live-server-safe demo reset
 
 `demo:reset` clears Markpath tables in a SQLite transaction instead of deleting the SQLite file. Removing a file while Next's dev process held an open WAL caused a short-read I/O failure. The reset now preserves the active database file and removes only generated fixture workspaces and uploads before reseeding known demo records.
+
+## 2026-11-06 (Claude takeover after Codex stopped)
+- Agent API added (audit, task, execute, verify, room-event) with per-agent tokens and role enforcement. The legacy `MARKPATH_AGENT_TOKEN` is accepted as Director only.
+- Approvals are single use (`approvals.consumed_at`, added by an idempotent migration).
+- Human approvals are logged as `Human: <name>`; no agent name is hard-coded for a human action.
+- Session cookies now carry an expiry and production requires `MARKPATH_SESSION_SECRET`.
+- Fixture token replacement targets specific declarations, not any text, so values like `14px` are untouched.
+- Switch shows "connected" only when the server is reachable and at least one agent message was recorded through `room-event`.
+- Node pinned to 24 (`engines`, `.nvmrc`).
