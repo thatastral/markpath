@@ -1,6 +1,6 @@
 # Markpath
 
-> **Flip the Switch submission.** Four agents in a Switch room (Director, Design, Implementation, QA) detect off-brand values in GitHub, Figma and Canva, get a person's approval on the exact change (dashboard, link, or a reply in chat), correct it, and verify it independently. Demo script: [docs/demo-script.md](docs/demo-script.md). Submission notes: [docs/submission.md](docs/submission.md). Talking to the agents: [docs/talking-to-agents.md](docs/talking-to-agents.md). Slack/Telegram: [Slack](docs/setup-slack.md), [Telegram](docs/setup-telegram.md), [Discord](docs/setup-discord.md), [Teams](docs/setup-teams.md) (all documented, none run live yet).
+> **Live:** https://markpath.vercel.app (Vercel + Turso). **Flip the Switch submission.** Four agents in a Switch room (Director, Design, Implementation, QA) detect off-brand values in GitHub, Figma and Canva, get a person's approval on the exact change (dashboard, link, or a reply in chat), correct it, and verify it independently. Demo script: [docs/demo-script.md](docs/demo-script.md). Submission notes: [docs/submission.md](docs/submission.md). Talking to the agents: [docs/talking-to-agents.md](docs/talking-to-agents.md). Slack/Telegram: [Slack](docs/setup-slack.md), [Telegram](docs/setup-telegram.md), [Discord](docs/setup-discord.md), [Teams](docs/setup-teams.md) (all documented, none run live yet).
 
 Markpath is an agentic brand-operations control centre: it turns approved brand rules into an evidence-led **Detect → Coordinate → Correct → Verify** workflow across design and code.
 

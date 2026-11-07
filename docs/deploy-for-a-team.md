@@ -33,3 +33,9 @@ Follow Switch's current steps in its repository. From its docs: run it with Dock
 
 ## Approval links for teammates
 Set `MARKPATH_PUBLIC_URL` to the address your team opens (for example `https://markpath.yourcompany.com`). The agents keep calling the API on the address in the room template, but every approval, issues and integrations link they post uses the public address. Without it, links say `localhost`, which only works on the machine running Markpath.
+
+## Vercel (what the live demo uses)
+1. `vercel link`, then add the Turso database from the Vercel Marketplace (`vercel integration add tursocloud/database -e production`). It sets `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`; Markpath uses them automatically and keeps a local SQLite file when they are absent.
+2. Set `MARKPATH_SESSION_SECRET`, `GITHUB_CLIENT_ID` and `CRON_SECRET` for production.
+3. `vercel deploy --prod`. Pull-request checks run once a day through Vercel Cron (`vercel.json`, the Hobby plan limit); a Docker host checks every minute instead.
+4. Sign up on the live site, then copy the room template from its Integrations page so the agents call the hosted address.
