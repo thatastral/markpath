@@ -1,3 +1,4 @@
+import { TIME_ZONE } from "@/lib/labels";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { currentUserId } from "@/server/auth/session";
@@ -47,7 +48,7 @@ export default async function OverviewPage() {
   const dot: Record<Tone, string> = { success: "bg-success", warning: "bg-warning", danger: "bg-danger", brand: "bg-brand", neutral: "bg-faint" };
   const user = findUserById(db, userId); const first = (user?.name || "").trim().split(/\s+/)[0];
   const hasRules = Boolean(brand.brand_version && brand.brand_version !== "0.0" && brand.brand_specification && brand.brand_specification !== "{}");
-  const hour = new Date().getHours(); const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const hour = Number(new Date().toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: TIME_ZONE })); const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const waiting = getApprovals(db, brand.id).filter((a) => a.decision === "pending");
   const byTask = new Map<string, typeof waiting>(); for (const a of waiting) byTask.set(a.task_id, [...(byTask.get(a.task_id) ?? []), a]);
   return <main className="anim-rise">

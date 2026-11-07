@@ -1,3 +1,4 @@
+import { TIME_ZONE } from "@/lib/labels";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { currentUserId } from "@/server/auth/session";
@@ -11,8 +12,8 @@ import { ActivityIcon, ChevronRight } from "@/components/ui/icons";
 import { pageTitle } from "../page-title";
 export async function generateMetadata() { return { title: await pageTitle("Activity") }; }
 
-const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: TIME_ZONE });
+const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TIME_ZONE });
 
 export default async function ActivityPage() {
   const userId = await currentUserId(); if (!userId) redirect("/login");

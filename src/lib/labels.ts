@@ -6,7 +6,9 @@ export const ruleName = (id: string) => RULES[id] ?? id.replaceAll("-", " ");
 export const severityName = (s: string) => ({ high: "High priority", medium: "Medium priority", low: "Low priority" } as Record<string, string>)[s] ?? s;
 const TASK: Record<string, string> = { RECEIVED: "Received", ASSESSING: "Looking into it", AUDITING: "Checking", PLAN_READY: "Plan ready", AWAITING_APPROVAL: "Waiting for approval", APPROVED: "Approved", IMPLEMENTING: "Applying the changes", VERIFYING: "Being verified", COMPLETED: "Done and verified", PARTIALLY_COMPLETED: "Partly done", FAILED: "Failed", REJECTED: "Rejected" };
 export const taskStatusName = (s: string) => TASK[s] ?? s.replaceAll("_", " ").toLowerCase();
-export const whenText = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "not yet");
+/** Times show in the workspace's time zone (the server runs in UTC). Set NEXT_PUBLIC_MARKPATH_TIMEZONE to change it. */
+export const TIME_ZONE = process.env.NEXT_PUBLIC_MARKPATH_TIMEZONE || "Africa/Lagos";
+export const whenText = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE }) : "not yet");
 /** One name per agent, one casing: "Figma plugin" and "Design Agent" are both the Design agent; "Human: Jo" is Jo. */
 export const agentLabel = (name: string) => {
   const n = name.replace(/^Human:\s*/i, "").trim();

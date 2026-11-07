@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/main-nav";
 import { buttonClass } from "@/components/ui/primitives";
-import { Mascot, type MascotKind } from "@/components/mascot";
+import type { MascotKind } from "@/components/mascot";
 import { ChatWindow, LandingEffects } from "@/components/landing/effects";
 import { MascotCloud } from "@/components/landing/mascot-cloud";
 import { StepVisual, ToolStrip } from "@/components/landing/visuals";
@@ -72,7 +72,7 @@ export default function WelcomePage() {
         </div>
         <ol className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => <li className="flex flex-col rounded-card border border-border bg-surface p-4" data-reveal key={s.n} style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}>
-            <div className="flex min-h-[92px] items-center rounded-panel border border-border bg-canvas p-2.5"><div className="w-full"><StepVisual step={i} /></div></div>
+            <div className="flex h-[120px] items-center rounded-panel border border-border bg-canvas p-1.5"><div className="w-full"><StepVisual step={i} /></div></div>
             <div className="mt-4 flex items-center gap-2">
               <span aria-hidden className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border-strong text-2xs font-semibold tabular-nums text-muted">{s.n}</span>
               <h3 className="font-semibold">{s.title}</h3>
@@ -84,7 +84,6 @@ export default function WelcomePage() {
 
       <section aria-labelledby="switch-heading" className="mx-auto max-w-5xl px-4 pb-24 sm:px-6" id="switch">
         <div className="relative" data-reveal>
-          <MascotCloud />
           <div className="grid overflow-hidden rounded-card border border-border bg-surface md:grid-cols-2">
             <div className="p-7 sm:p-10">
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted">Built on Switch</p>
@@ -110,13 +109,15 @@ export default function WelcomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 pb-24 sm:px-6" data-reveal>
-        <div className="relative overflow-hidden rounded-card bg-ink px-7 py-14 text-center text-surface sm:px-12">
-          <div aria-hidden className="mb-6 flex justify-center gap-3"><Mascot kind="director" size={34} className="-rotate-6" /><Mascot kind="design" size={34} className="translate-y-2" /><Mascot kind="implementation" size={34} className="rotate-6" /><Mascot kind="qa" size={34} className="translate-y-1" /></div>
-          <h2 className="text-balance text-3xl font-semibold tracking-tight">Set up in minutes.</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 opacity-70">Upload your guideline or paste your website. Connect GitHub, Figma and Canva. Bring the agents into your chat.</p>
-          <div className="mt-7 flex flex-wrap justify-center gap-2">
-            <Link className="inline-flex min-h-10 items-center rounded-full bg-surface px-5 text-sm font-medium text-ink transition-opacity hover:opacity-90" href="/signup">Get started free</Link>
-            <a className="inline-flex min-h-10 items-center rounded-full border border-surface/25 px-5 text-sm font-medium text-surface transition-colors hover:bg-surface/10" href={DOCS} rel="noreferrer" target="_blank">Read the docs</a>
+        <div className="relative overflow-hidden rounded-card bg-[#101010] px-7 pb-16 pt-8 text-center text-white sm:px-12 sm:pt-10">
+          <MascotCloud variant="cta" />
+          <div className="relative z-10 mx-auto max-w-md">
+            <h2 className="text-balance text-3xl font-semibold tracking-tight">Set up in minutes.</h2>
+            <p className="mt-3 text-sm leading-6 text-white/65">Upload your guideline or paste your website. Connect GitHub, Figma and Canva. Bring the agents into your chat.</p>
+            <div className="mt-7 flex flex-wrap justify-center gap-2">
+              <Link className="inline-flex min-h-10 items-center rounded-full bg-white px-5 text-sm font-medium text-[#101010] transition-opacity hover:opacity-90" href="/signup">Get started free</Link>
+              <a className="inline-flex min-h-10 items-center rounded-full border border-white/25 px-5 text-sm font-medium text-white transition-colors hover:bg-white/10" href={DOCS} rel="noreferrer" target="_blank">Read the docs</a>
+            </div>
           </div>
         </div>
       </section>
