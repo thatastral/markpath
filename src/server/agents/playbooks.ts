@@ -36,7 +36,7 @@ APPLY: when @mentioned that approvals are in:
  4. Post a message mentioning @${t}-director with before and after counts and what changed.
 CANVA AUDIT: when the message includes a Canva design URL (the design id is the part after /design/), use the Canva MCP tools read-design and edit-design:
  1. GET ${base}/api/plugin/spec for the brand values.
- 2. read-design (no transaction) with filter fields ["design_content"]. Count "colour": every element whose colour equals the legacy primary colour (case-insensitive) in text colour, solid shape or rect fill, or any stroke or line colour. Count "humanReview": text containing a template placeholder (for example reallygreatsite, lorem ipsum, your name here); these need a person and you must NOT change them.
+ 2. read-design (no transaction) with filter fields ["design_content"]. Count "colour": every element whose colour equals the legacy primary colour, compared case-insensitively (#164b9b equals #164B9B). Look in text regions (formatting.color), shapes (paths[].fill.color.color when type is "solid"), rects (fill.color), and lines or strokes (stroke.color.color). A shape with type "shape" keeps its colour inside paths, so always check paths. Count "humanReview": text containing a template placeholder (for example reallygreatsite, lorem ipsum, your name here); these need a person and you must NOT change them.
  2b. EXTRA CHECKS (report only, as items for a person): contrast, by pairing each text colour with the solid colour directly behind it (a solid shape under the text, or a solid page background) and calling POST ${base}/api/agent/contrast; if the background is a photo or gradient, say it could not be measured. Voice: flag only copy that clearly breaks the "voice" in GET ${base}/api/plugin/spec, with a suggested rewrite. Logo: if logoUploaded is true, compare with the reference from ${base}/api/agent/brand-logo and the design thumbnail, and flag doubts with a confidence level.
  3. POST ${base}/api/plugin/findings with {"provider": "canva", "fileName": "<design title or id>", "findings": [{"nodeName": "<element or text>", "property": "colour" or "humanReview", "detected": "...", "expected": "<expected value or 'needs a person'>"}]}.
  4. If colour is above 0: POST ${base}/api/plugin/request-approval with {"provider": "canva", "fileName": "<same>", "changes": [{"property": "colour", "from": "<legacy>", "to": "<expected>", "count": <n>}]}.
@@ -62,6 +62,8 @@ const talk = (t: string, base: string) => `HOW TO WRITE YOUR REPLIES. Short, cle
 
 const intents: Record<AgentRole, (t: string, base: string) => string> = {
   director: (t, base) => `WHAT PEOPLE MIGHT ASK THE DIRECTOR, in any wording:
+- ANY CHANGE REQUEST IS A FIX REQUEST: "fix / update / change / replace / round / make X on-brand" about any colour, font, corner, button, badge, card or poster in the configured Figma file, Canva design or GitHub repository means step A with A1, for whoever asks (teammates included). Never refuse it as "design work", never ask which file when one is configured: use the configured Figma file and Canva design. Only adding brand-new content (new text, new images) is out of scope: say so in one line and still run the fix for the off-brand values.
+- ONE TASK AT A TIME: if a fix task is already open (reused: true), add to it; never start parallel tasks for the same changes.
 - ALWAYS CHECK EVERYTHING: any request to audit, check, scan, list, outline or summarise issues, or "what's off-brand / what's wrong", means a full check of GitHub AND Figma AND Canva. Do step A (POST /api/agent/audit), then A1: mention @${t}-design to audit the Figma file and the Canva design, and wait for its report before you answer. Never answer from the Issues page alone and never report only GitHub when Figma or Canva are configured. In your answer, give counts per tool (GitHub, Figma, Canva) and say which still need a person.
 - "check / look at / is this on brand / does this look right / review <link>": step V.
 - "what's wrong / what's open / status / how are we doing / anything to approve / what's pending": GET ${base}/api/agent/overview and answer plainly: open issues by tool, the top few specific ones, what is waiting for approval and how to approve it, and recent reviews. Link ${base}/issues for the full list.
@@ -75,9 +77,10 @@ const intents: Record<AgentRole, (t: string, base: string) => string> = {
   qa: () => `WHAT PEOPLE MIGHT ASK BRAND QA, in any wording: "did it work", "is it really done", "double check task <id>". Re-read and verify as described; never accept someone else's claim as proof, and say plainly what you could not check.`,
 };
 
+const style = `MOST IMPORTANT RULE FOR EVERY MESSAGE A PERSON READS: keep it short and clean. One summary line, then at most 4 short bullets (group by **GitHub**, **Figma**, **Canva** when useful), then one line on what's next. NEVER show task ids, approval ids, UUIDs, API paths, commands or tokens to people: say "this fix" or "the fix for the old blue" instead. Ids are only for messages addressed to another agent. Never list other open tasks. This rule overrides any step below that says to include a task id in a message to a person.`;
 export function playbook(role: AgentRole, team: string, base: string) {
   const safeTeam = team.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "markpath";
-  const text = `${bodies[role](safeTeam, base)}\n\n${intents[role](safeTeam, base)}\n\n${talk(safeTeam, base)}\n\n${common(base)}`;
+  const text = `${style}\n\n${bodies[role](safeTeam, base)}\n\n${intents[role](safeTeam, base)}\n\n${talk(safeTeam, base)}\n\n${common(base)}`;
   // Links people open (approve, issues, integrations) use the public address when one is set; agents keep calling the API at base.
   const pub = publicUrl(base);
   return pub === base ? text : text.replace(new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/(approve|issues|integrations)`, "g"), `${pub}/$1`);

@@ -7,8 +7,11 @@ const sans = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swap
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.MARKPATH_PUBLIC_URL || "https://markpath.vercel.app"),
   title: "Markpath",
-  description: "Brand operations control centre"
+  description: "Your brand, kept on-brand by a team of agents in Switch.",
+  openGraph: { title: "Markpath", description: "Your brand, kept on-brand by a team of agents in Switch.", url: "/", siteName: "Markpath", type: "website" },
+  twitter: { card: "summary_large_image", title: "Markpath", description: "Your brand, kept on-brand by a team of agents in Switch." }
 };
 
 export const viewport: Viewport = {

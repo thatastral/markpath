@@ -211,7 +211,12 @@ export function chatApproval(ctx: Ctx, input: { taskId: string; senderHandle: st
   const object = "(?: (?:all|both|them|it|this|that|these|those|everything|changes|the changes|the fixes|fixes|the update|updates))?(?: (?:please|now|thanks|thank you))?";
   const approveRe = new RegExp(`^(?:approve|approved|approval|yes|yep|yeah|go ahead|go for it|ship it|lgtm|looks good|do it|proceed|confirm|confirmed)${object}$`);
   const rejectRe = new RegExp(`^(?:reject|rejected|deny|denied|decline|declined|no|nope|stop|hold off|cancel|(?:do not|don't|dont) (?:do it|proceed|approve|ship it))${object}$`);
-  const decision = approveRe.test(clean) ? "approved" : rejectRe.test(clean) ? "rejected" : null;
+  // Also accept a plain yes or no followed by a short pointer to what it's for ("approve @eddy's task", "approve the Figma fix"), as long as it isn't hedged.
+  const loose = input.quote.replace(/@\S+/g, " ").toLowerCase().replace(/[.!,;:]+/g, " ").replace(/\s+/g, " ").trim();
+  const hedged = /\b(if|but|unless|not|don't|dont|wait|after|maybe|later|except|only)\b|\?/.test(loose) || loose.split(" ").length > 8;
+  const looseApprove = !hedged && /^(approve|approved|yes|go ahead|ship it|lgtm|confirm)\b/.test(loose);
+  const looseReject = !hedged && /^(reject|rejected|deny|decline|cancel)\b/.test(loose);
+  const decision = approveRe.test(clean) || looseApprove ? "approved" : rejectRe.test(clean) || looseReject ? "rejected" : null;
   if (!decision) throw new AgentApiError("That message is not a plain yes or no. Ask the person to reply with just approve or reject (for example 'approve changes'), or send them the approval link.", 422);
   // Switch tells an agent only that "a user" addressed it, not who. When the sender is reported with that generic label, the approval is attributed to the
   // workspace owner, but only if the workspace has exactly one owner. Switch's addressing rules (the Director answers the room owner and the owner's agents) are what limit who can reach the Director.
