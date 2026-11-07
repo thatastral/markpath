@@ -4,8 +4,8 @@ import { PluginApiError, pluginPrincipal } from "./operations";
 // The plugin UI runs in a Figma iframe with an opaque origin, so CORS is open. Auth is a bearer token, never a cookie.
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
 export function preflight() { return new NextResponse(null, { status: 204, headers: cors }); }
-export async function handlePlugin(request: NextRequest, run: (brandId: string) => Promise<unknown> | unknown) {
-  const principal = pluginPrincipal(request.headers.get("authorization"));
+export async function handlePlugin(request: NextRequest, run: (brandId: string) => Promise<unknown> | unknown, allow?: string[]) {
+  const principal = pluginPrincipal(request.headers.get("authorization"), allow);
   if (!principal) return NextResponse.json({ error: "Plugin API is not configured or the token is invalid." }, { status: 401, headers: cors });
   try { return NextResponse.json(await run(principal.brandId), { headers: cors }); }
   catch (error) {

@@ -8,6 +8,7 @@ import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { activeBrandForUser } from "@/server/workspace/active";
 import { clearFigmaFile, saveFigmaFile } from "@/server/integrations/figma";
+import { clearCanvaDesign, saveCanvaDesign } from "@/server/integrations/canva";
 
 const handle = z.string().trim().min(1, "Enter your chat handle.").max(100).transform((v) => v.replace(/^@/, "").split(":")[0]);
 export async function saveChatHandle(formData: FormData) {
@@ -41,5 +42,16 @@ export async function saveFigmaFileAction(formData: FormData) {
   if (owner?.role !== "owner") return;
   const link = String(formData.get("link") ?? "");
   if (link.trim() === "") clearFigmaFile(brand.id); else { try { saveFigmaFile(brand.id, link); } catch { return; } }
+  revalidatePath("/integrations");
+}
+
+export async function saveCanvaDesignAction(formData: FormData) {
+  const userId = await currentUserId(); if (!userId) redirect("/login");
+  const db = getDatabase(); initializeSchema(db);
+  const brand = await activeBrandForUser(db, userId); if (!brand) redirect("/");
+  const owner = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(userId, brand.id) as { role: string } | undefined;
+  if (owner?.role !== "owner") return;
+  const link = String(formData.get("link") ?? "");
+  if (link.trim() === "") clearCanvaDesign(brand.id); else { try { saveCanvaDesign(brand.id, link); } catch { return; } }
   revalidatePath("/integrations");
 }

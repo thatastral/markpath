@@ -10,6 +10,7 @@ import { verifyFigmaFixture, verifyGithubFixture } from "@/server/qa/fixture-ver
 import { addTaskResource, createTask, finishVerification, recordActivity, requestApproval, transitionTask, updateTaskResource } from "@/server/tasks/service";
 import { executeGithubReal, isRealGithub, realGithubResourceId, scanGithubRepo, verifyGithubReal } from "@/server/integrations/github";
 import { figmaMcpConfig } from "@/server/integrations/figma";
+import { canvaMcpConfig } from "@/server/integrations/canva";
 import { brandValuesFromSpec } from "@/server/brand/spec";
 import { playbook } from "./playbooks";
 import { agentDisplayName, type AgentPrincipal, type AgentRole } from "./auth";
@@ -49,7 +50,7 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   if (active) return { reused: true, ...taskState(ctx, active.id) };
   const spec = db().prepare("SELECT status FROM brand_spec_versions WHERE brand_id = ? AND status = 'approved' LIMIT 1").get(brand.id);
   if (!spec) throw new AgentApiError("The brand specification is not approved yet. Approve it in the dashboard first.", 409);
-  const real = isRealGithub(brand.id); const figmaMcp = figmaMcpConfig(brand.id);
+  const real = isRealGithub(brand.id); const figmaMcp = figmaMcpConfig(brand.id); const canvaMcp = canvaMcpConfig(brand.id);
   const resources = { github: resourceFor(brand.id, "github") ?? createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web"), figma: figmaMcp ? null : (resourceFor(brand.id, "figma") ?? createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma")) };
   const [githubFindings, snapshot] = await Promise.all([real ? scanGithubRepo(brand.id).then((r) => r.findings) : scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")), readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8")]);
   const figmaFindings = figmaMcp ? [] : scanFigmaFixture(JSON.parse(snapshot));
@@ -62,8 +63,8 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   transitionTask(task.id, "PLAN_READY", name);
   requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
   // With a Figma file audited through the MCP, the task waits in PLAN_READY until the Design agent adds the Figma approval (or the Director proceeds without it).
-  if (!figmaMcp) transitionTask(task.id, "AWAITING_APPROVAL", name);
-  return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...(figmaMcp ? { figma: { url: figmaMcp.url, fileKey: figmaMcp.fileKey, next: "Ask the Design agent to audit this Figma file for this task through the Figma MCP. It adds the Figma approval; then post the approval request." } } : {}), ...taskState(ctx, task.id) };
+  if (!figmaMcp && !canvaMcp) transitionTask(task.id, "AWAITING_APPROVAL", name);
+  return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...(figmaMcp ? { figma: { url: figmaMcp.url, fileKey: figmaMcp.fileKey, next: "Ask the Design agent to audit this Figma file for this task through the Figma MCP. It adds the Figma approval; then post the approval request." } } : {}), ...(canvaMcp ? { canva: { url: canvaMcp.url, designId: canvaMcp.designId, next: "Ask the Design agent to audit this Canva design for this task through the Canva MCP. It adds the Canva approval." } } : {}), ...taskState(ctx, task.id) };
 }
 
 export function taskState(ctx: Pick<Ctx, "brandId">, taskId: string) {
@@ -106,16 +107,15 @@ export async function executeTarget(ctx: Ctx, input: { taskId: string; target: T
 export async function verifyTask(ctx: Ctx, input: { taskId: string }) {
   requireRole(ctx.role, ["qa"], "verify a task");
   const task = taskRow(input.taskId, ctx.brandId);
-  const records = db().prepare("SELECT r.external_resource_id AS target, r.id AS resource_id, e.evidence FROM execution_records e JOIN resources r ON r.id = e.resource_id WHERE e.task_id = ? AND e.mode IN ('fixture', 'github_real', 'figma_plugin', 'figma_mcp') AND e.result IN ('succeeded', 'applied_reported')").all(task.id) as Array<{ target: string; resource_id: string; evidence: string }>;
+  const records = db().prepare("SELECT r.external_resource_id AS target, r.id AS resource_id, e.evidence FROM execution_records e JOIN resources r ON r.id = e.resource_id WHERE e.task_id = ? AND e.mode IN ('fixture', 'github_real', 'figma_plugin', 'figma_mcp', 'canva_mcp') AND e.result IN ('succeeded', 'applied_reported')").all(task.id) as Array<{ target: string; resource_id: string; evidence: string }>;
   const isGithub = (target: string) => target === "nexa-web" || target.startsWith("gh:");
-  const isFigmaFile = (target: string) => target.startsWith("figma-plugin:");
+  const isFigmaFile = (target: string) => target.startsWith("figma-plugin:") || target.startsWith("canva-mcp:"); // a Figma file or Canva design edited through an MCP
   const missing = (["github", "figma"] as Target[]).filter((t) => !records.some((r) => (t === "github" ? isGithub(r.target) : r.target === externalId.figma || isFigmaFile(r.target))));
   if (missing.length) throw new AgentApiError(`Refused: nothing to verify yet for ${missing.join(", ")}. Both resources must be executed first.`, 409);
   // A Figma file edited through the Figma MCP is verified by Brand QA re-reading it there; that report must exist before the task can be finished.
-  const mcpFigma = records.find((r) => isFigmaFile(r.target));
-  if (mcpFigma) {
-    const reported = db().prepare("SELECT status, verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, mcpFigma.resource_id) as { status: string; verification_evidence: string | null } | undefined;
-    if (!reported?.verification_evidence) throw new AgentApiError("Refused: Brand QA must first re-read the Figma file through the Figma MCP and report it with POST /api/agent/figma-verification, then call verify again.", 409);
+  for (const design of records.filter((r) => isFigmaFile(r.target))) {
+    const reported = db().prepare("SELECT status, verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, design.resource_id) as { status: string; verification_evidence: string | null } | undefined;
+    if (!reported?.verification_evidence) throw new AgentApiError(`Refused: Brand QA must first re-read ${design.target.split(":")[0] === "canva-mcp" ? "the Canva design" : "the Figma file"} through its MCP and report it with POST /api/agent/figma-verification, then call verify again.`, 409);
   }
   if (task.status === "IMPLEMENTING") transitionTask(task.id, "VERIFYING", "Brand QA");
   else if (task.status !== "VERIFYING") throw new AgentApiError(`Cannot verify while the task is ${task.status}.`, 409);
@@ -197,17 +197,21 @@ export function readyForApproval(ctx: Ctx, taskId: string) {
 }
 
 /** QA reports its independent re-read of the Figma file (done through the Figma MCP). Markpath decides pass/fail from the counts; it does not trust a claimed "verified". */
-export function figmaVerification(ctx: Ctx, input: { taskId: string; counts: { colour: number; typeface: number; radius: number }; checkedNodeIds?: string[]; note?: string }) {
-  requireRole(ctx.role, ["qa"], "report a Figma verification");
+export function figmaVerification(ctx: Ctx, input: { taskId: string; provider?: "figma" | "canva"; counts: Record<string, number>; checkedNodeIds?: string[]; note?: string }) {
+  requireRole(ctx.role, ["qa"], "report a design verification");
+  const provider = input.provider ?? "figma"; const prefix = provider === "canva" ? "canva-mcp:" : "figma-plugin:";
   const task = taskRow(input.taskId, ctx.brandId);
-  const resource = db().prepare("SELECT r.id FROM task_resources tr JOIN resources r ON r.id = tr.resource_id WHERE tr.task_id = ? AND r.external_resource_id LIKE 'figma-plugin:%'").get(task.id) as { id: string } | undefined;
-  if (!resource) throw new AgentApiError("This task has no Figma file edited through the MCP.", 404);
-  const executed = db().prepare("SELECT 1 FROM execution_records WHERE task_id = ? AND resource_id = ? AND mode IN ('figma_mcp', 'figma_plugin')").get(task.id, resource.id);
-  if (!executed) throw new AgentApiError("The Design agent has not applied the Figma change yet, so there is nothing to verify.", 409);
-  const remaining = input.counts.colour + input.counts.typeface + input.counts.radius; const verified = remaining === 0;
-  const evidence = { verified, label: "independent re-read of the Figma file by Brand QA through the Figma MCP; reported by the agent, not re-checked by Markpath", remainingOutdated: remaining, counts: input.counts, checkedNodeIds: (input.checkedNodeIds ?? []).slice(0, 40), note: input.note?.slice(0, 300) };
-  updateTaskResource({ taskId: task.id, resourceId: resource.id, status: verified ? "COMPLETED" : "FAILED", verificationEvidence: evidence, error: verified ? undefined : `${remaining} outdated value(s) remain in Figma.`, actor: "Brand QA" });
-  return { verified, remainingOutdated: remaining, next: verified ? "Now call POST /api/agent/verify to verify the other resources and finish the task." : "Do not finish the task; report the remaining outdated values." };
+  const resource = db().prepare("SELECT r.id FROM task_resources tr JOIN resources r ON r.id = tr.resource_id WHERE tr.task_id = ? AND r.external_resource_id LIKE ?").get(task.id, `${prefix}%`) as { id: string } | undefined;
+  if (!resource) throw new AgentApiError(`This task has no ${provider === "canva" ? "Canva design" : "Figma file"} edited through the MCP.`, 404);
+  const executed = db().prepare("SELECT 1 FROM execution_records WHERE task_id = ? AND resource_id = ? AND mode IN ('figma_mcp', 'figma_plugin', 'canva_mcp')").get(task.id, resource.id);
+  if (!executed) throw new AgentApiError("The Design agent has not applied the change yet, so there is nothing to verify.", 409);
+  // "humanReview" counts items only a person can resolve (for example a leftover template placeholder). They are reported but do not fail verification.
+  const humanReview = input.counts.humanReview ?? 0;
+  const remaining = Object.entries(input.counts).filter(([k]) => k !== "humanReview").reduce((sum, [, n]) => sum + n, 0); const verified = remaining === 0;
+  const label = `independent re-read of the ${provider === "canva" ? "Canva design" : "Figma file"} by Brand QA through the ${provider === "canva" ? "Canva" : "Figma"} MCP; reported by the agent, not re-checked by Markpath`;
+  const evidence = { verified, label, remainingOutdated: remaining, needsHumanReview: humanReview, counts: input.counts, checkedNodeIds: (input.checkedNodeIds ?? []).slice(0, 40), note: input.note?.slice(0, 300) };
+  updateTaskResource({ taskId: task.id, resourceId: resource.id, status: verified ? "COMPLETED" : "FAILED", verificationEvidence: evidence, error: verified ? undefined : `${remaining} outdated value(s) remain.`, actor: "Brand QA" });
+  return { verified, remainingOutdated: remaining, needsHumanReview: humanReview, next: verified ? "Now call POST /api/agent/verify to verify the other resources and finish the task." : "Do not finish the task; report the remaining outdated values." };
 }
 
 /** The read-only inspect script or the approved-change apply script for the Figma MCP, with this workspace's brand values filled in. */
