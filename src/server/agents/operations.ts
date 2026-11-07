@@ -55,19 +55,21 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   const spec = db().prepare("SELECT status FROM brand_spec_versions WHERE brand_id = ? AND status = 'approved' LIMIT 1").get(brand.id);
   if (!spec) throw new AgentApiError("The brand specification is not approved yet. Approve it in the dashboard first.", 409);
   const real = isRealGithub(brand.id); const figmaMcp = figmaMcpConfig(brand.id); const canvaMcp = canvaMcpConfig(brand.id);
-  const resources = { github: resourceFor(brand.id, "github") ?? createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web"), figma: figmaMcp ? null : (resourceFor(brand.id, "figma") ?? createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma")) };
-  const [githubFindings, snapshot] = await Promise.all([real ? scanGithubRepo(brand.id).then((r) => r.findings) : scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")), readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8")]);
-  const figmaFindings = figmaMcp ? [] : scanFigmaFixture(JSON.parse(snapshot));
+  const demo = Boolean((db().prepare("SELECT is_demo FROM brands WHERE id = ?").get(brand.id) as { is_demo: number } | undefined)?.is_demo); // only demo workspaces use the built-in sample files
+  if (!real && !demo && !figmaMcp && !canvaMcp) throw new AgentApiError("Nothing is connected yet. Connect GitHub, a Figma file or a Canva design on the Integrations page first.", 409);
+  const resources = { github: real || demo ? (resourceFor(brand.id, "github") ?? createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web")) : null, figma: figmaMcp || !demo ? null : (resourceFor(brand.id, "figma") ?? createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma")) };
+  const [githubFindings, snapshot] = await Promise.all([real ? scanGithubRepo(brand.id).then((r) => r.findings) : demo ? scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")) : Promise.resolve([]), readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8")]);
+  const figmaFindings = resources.figma ? scanFigmaFixture(JSON.parse(snapshot)) : [];
   const githubWork = githubFindings.length > 0; const figmaFixtureWork = Boolean(resources.figma) && figmaFindings.length > 0; const designConfigured = Boolean(figmaMcp || canvaMcp);
   if (!githubWork && !figmaFixtureWork && !designConfigured) return { reused: false, nothingToFix: true, message: "No outdated brand values were found, so there is nothing to approve or fix." };
   const owner = db().prepare("SELECT user_id FROM memberships WHERE brand_id = ? AND role = 'owner' LIMIT 1").get(brand.id) as { user_id: string } | undefined;
   const name = agentDisplayName[role];
   const { task } = createTask({ brandId: brand.id, initiatedBy: owner?.user_id ?? "", type: "brand_correction", description: `Fix ${brand.name} brand values in ${taskParts(real, githubWork, figmaFixtureWork, Boolean(figmaMcp), Boolean(canvaMcp))}`, idempotencyKey: `agent-audit-${brand.id}-${Date.now()}`, agentName: name });
-  if (githubWork) addTaskResource(task.id, resources.github); if (figmaFixtureWork && resources.figma) addTaskResource(task.id, resources.figma);
+  if (githubWork && resources.github) addTaskResource(task.id, resources.github); if (figmaFixtureWork && resources.figma) addTaskResource(task.id, resources.figma);
   transitionTask(task.id, "ASSESSING", name); transitionTask(task.id, "AUDITING", name);
-  db().transaction(() => { replaceAuditFindings(brand.id, resources.github, githubFindings); if (resources.figma) replaceAuditFindings(brand.id, resources.figma, figmaFindings); })();
+  db().transaction(() => { if (resources.github) replaceAuditFindings(brand.id, resources.github, githubFindings); if (resources.figma) replaceAuditFindings(brand.id, resources.figma, figmaFindings); })();
   transitionTask(task.id, "PLAN_READY", name);
-  if (githubWork) requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (figmaFixtureWork && resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
+  if (githubWork && resources.github) requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (figmaFixtureWork && resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
   // With a Figma file audited through the MCP, the task waits in PLAN_READY until the Design agent adds the Figma approval (or the Director proceeds without it).
   if (!designConfigured) transitionTask(task.id, "AWAITING_APPROVAL", name);
   return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...(figmaMcp ? { figma: { url: figmaMcp.url, fileKey: figmaMcp.fileKey, next: "Ask the Design agent to audit this Figma file for this task through the Figma MCP. It adds the Figma approval; then post the approval request." } } : {}), ...(canvaMcp ? { canva: { url: canvaMcp.url, designId: canvaMcp.designId, next: "Ask the Design agent to audit this Canva design for this task through the Canva MCP. It adds the Canva approval." } } : {}), ...taskState(ctx, task.id) };

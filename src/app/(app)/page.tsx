@@ -35,13 +35,15 @@ export default async function OverviewPage() {
   };
   const dot: Record<Tone, string> = { success: "bg-success", warning: "bg-warning", danger: "bg-danger", brand: "bg-brand", neutral: "bg-faint" };
   const user = findUserById(db, userId); const first = (user?.name || "").trim().split(/\s+/)[0];
+  const hasRules = Boolean(brand.brand_version && brand.brand_version !== "0.0" && brand.brand_specification && brand.brand_specification !== "{}");
   const hour = new Date().getHours(); const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const waiting = getApprovals(db, brand.id).filter((a) => a.decision === "pending");
   const byTask = new Map<string, typeof waiting>(); for (const a of waiting) byTask.set(a.task_id, [...(byTask.get(a.task_id) ?? []), a]);
   return <main className="anim-rise">
-    <PageHeader actions={<Link className={buttonClass("secondary")} href="/brand"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />Brand rules v{brand.brand_version}</Link>} description={brand.description || "Your brand workspace at a glance."} title="Overview" />
+    <PageHeader actions={<Link className={buttonClass("secondary")} href="/brand"><span aria-hidden className={`h-1.5 w-1.5 rounded-full ${hasRules ? "bg-success" : "bg-warning"}`} />{hasRules ? `Brand rules v${brand.brand_version}` : "Add brand rules"}</Link>} description={brand.description || "Your brand workspace at a glance."} title="Overview" />
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
-    <h2 className="text-2xl font-semibold tracking-tight">{greeting}{first ? `, ${first}` : ""}.</h2>
+    <h2 className="text-2xl font-semibold tracking-tight">{greeting}{first && first.toLowerCase() !== "demo" ? `, ${first}` : ""}.</h2>
+    <p className="mt-1 text-sm text-muted">Here's what's happening in {brand.name}.</p>
     <nav aria-label="At a glance" className="mt-2 flex flex-wrap gap-x-1 text-sm text-muted">{metrics.map(([label, value, href, cta], idx) => <span className="inline-flex items-center" key={label}>{idx > 0 && <span aria-hidden className="mx-1.5 text-faint">·</span>}<Link aria-label={`${label}: ${value}. ${cta}`} className="inline-flex min-h-10 items-center gap-1 rounded-control hover:text-ink lg:min-h-6" href={href}><span className="font-medium tabular-nums text-ink">{value}</span> {label.toLowerCase()}</Link></span>)}</nav>
 
     <section aria-labelledby="decide-heading" className="mt-10">

@@ -5,7 +5,7 @@ import { getDatabase, databasePath, closeDatabase } from "./client";
 import { initializeSchema } from "./schema";
 import { addMembership, createBrand, createIntegrationPlaceholder, createUser, findUserByEmail } from "./repositories";
 
-export const DEMO_USER = { email: "demo@markpath.local", password: "markpath-demo", name: "Nexa Brand Owner" };
+export const DEMO_USER = { email: "demo@markpath.local", password: "markpath-demo", name: "Demo Owner" };
 
 export async function seedDatabase(path?: string, reset = false) {
   const resolved = databasePath(path);
@@ -21,6 +21,7 @@ export async function seedDatabase(path?: string, reset = false) {
   }
   const existingBrand = db.prepare("SELECT id, name FROM brands WHERE name = ?").get("Nexa") as { id: string; name: string } | undefined;
   const brand = existingBrand ?? createBrand(db, { name: "Nexa", description: "Demo fintech workspace for the Markpath fixture workflow.", approvalOwner: user.id });
+  db.prepare("UPDATE brands SET is_demo = 1, onboarded_at = COALESCE(onboarded_at, ?) WHERE id = ?").run(new Date().toISOString(), brand.id);
   addMembership(db, user.id, brand.id, "owner");
   // The bundled local Switch/Mattermost server has a single human, "switch-admin". Change it on the Integrations page.
   db.prepare("INSERT OR IGNORE INTO chat_identities (id, brand_id, user_id, handle, created_at) VALUES (?, ?, ?, ?, ?)").run(randomUUID(), brand.id, user.id, "switch-admin", new Date().toISOString());

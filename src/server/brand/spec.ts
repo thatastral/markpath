@@ -39,10 +39,12 @@ export function extractFixtureBrandSpec(contents: string, brandName = "Nexa"): B
   return brandSpecSchema.parse({ brandName, version, extractionMode: "fixture extraction", rules });
 }
 
-const defaultLegacy = { primaryColour: "#164B9B", primaryTypeface: "Inter", buttonRadius: "4px" };
+const nexaLegacy = { primaryColour: "#164B9B", primaryTypeface: "Inter", buttonRadius: "4px" };
+const noLegacy = { primaryColour: "", primaryTypeface: "", buttonRadius: "" };
 /** Expected and previous (outdated) brand values from an approved specification. Falls back to the Nexa demo values for older specs. */
 export function brandValuesFromSpec(specification: string) {
-  const spec = JSON.parse(specification) as { rules?: Array<{ id: string; expected: string; previous?: string }> };
+  const spec = JSON.parse(specification) as { brandName?: string; rules?: Array<{ id: string; expected: string; previous?: string }> };
+  const defaultLegacy = spec.brandName === "Nexa" ? nexaLegacy : noLegacy; // only the demo workspace has known old values
   const rule = (id: string) => spec.rules?.find((r) => r.id === id);
   const expected = { primaryColour: rule("primary-colour")?.expected, primaryTypeface: rule("primary-typeface")?.expected, buttonRadius: rule("button-radius")?.expected };
   if (!expected.primaryColour || !expected.primaryTypeface || !expected.buttonRadius) return null;

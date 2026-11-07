@@ -22,6 +22,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   const user = findUserById(db, userId);
   if (!user) redirect("/login"); // a stale cookie for a user that no longer exists
   const brands = listBrandsForUser(db, userId); const active = await activeBrandForUser(db, userId);
+  if (active && !(db.prepare("SELECT onboarded_at FROM brands WHERE id = ?").get(active.id) as { onboarded_at: string | null } | undefined)?.onboarded_at) redirect("/onboarding"); // new workspaces are set up first
   const pending = active ? getApprovals(db, active.id).filter((a) => a.decision === "pending").length : 0;
   // Sidebar "Getting started" pill (Attio, Langdock). Never let a slow Switch health check hold up the page.
   const setup = active ? await Promise.race([getSetupData(db, active.id, userId), new Promise<null>((r) => setTimeout(() => r(null), 800))]).catch(() => null) as SetupData | null : null;

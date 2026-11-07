@@ -11,5 +11,5 @@ export async function createWorkspaceAction(_: WorkspaceState, formData: FormDat
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const brand = await createWorkspace(userId, parsed.data);
   await setActiveBrand(brand.id);
-  redirect("/");
+  redirect("/onboarding");
 }

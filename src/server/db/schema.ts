@@ -127,6 +127,9 @@ export function initializeSchema(db: Database.Database) {
   for (const column of ["decision_channel", "decision_ref"]) if (!approvalColumns.some((c) => c.name === column)) db.exec(`ALTER TABLE approvals ADD COLUMN ${column} TEXT`);
   const brandColumns = db.prepare("PRAGMA table_info(brands)").all() as Array<{ name: string }>;
   if (!brandColumns.some((c) => c.name === "team_prefix")) db.exec("ALTER TABLE brands ADD COLUMN team_prefix TEXT NOT NULL DEFAULT 'markpath'");
+  // is_demo: only demo workspaces fall back to the built-in Nexa sample files. onboarded_at: set when onboarding is finished or skipped (existing workspaces count as onboarded).
+  if (!brandColumns.some((c) => c.name === "is_demo")) { db.exec("ALTER TABLE brands ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0"); db.exec("UPDATE brands SET is_demo = 1 WHERE name = 'Nexa'"); }
+  if (!brandColumns.some((c) => c.name === "onboarded_at")) { db.exec("ALTER TABLE brands ADD COLUMN onboarded_at TEXT"); db.exec("UPDATE brands SET onboarded_at = created_at"); }
   const tokenColumns = db.prepare("PRAGMA table_info(api_tokens)").all() as Array<{ name: string }>;
   if (!tokenColumns.some((column) => column.name === "token_enc")) db.exec("ALTER TABLE api_tokens ADD COLUMN token_enc TEXT");
   const assetColumns = db.prepare("PRAGMA table_info(brand_assets)").all() as Array<{ name: string }>;
