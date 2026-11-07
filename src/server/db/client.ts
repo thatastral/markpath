@@ -53,11 +53,16 @@ function compatible(raw: Db): Db {
   const wrapper = Object.create(raw) as Db;
   Object.assign(wrapper, {
     prepare(sql: string) {
-      const stmt = prepare(sql);
+      // Named parameters (@name) are rewritten to positional ones: the remote (Turso) protocol drops named object bindings.
+      const names: string[] = [];
+      const positional = sql.replace(/(?<![\w'"])@([A-Za-z_][A-Za-z0-9_]*)/g, (_m, name: string) => { names.push(name); return "?"; });
+      const stmt = prepare(names.length ? positional : sql);
+      const bind = (args: unknown[]) => (names.length && args.length === 1 && args[0] && typeof args[0] === "object" && !Array.isArray(args[0]) ? names.map((n) => (args[0] as Record<string, unknown>)[n] ?? null) : args);
       return new Proxy(stmt, { get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
-        if (prop === "get") return (...args: unknown[]) => clean((value as (...a: unknown[]) => unknown).apply(target, args));
-        if (prop === "all") return (...args: unknown[]) => ((value as (...a: unknown[]) => unknown[]).apply(target, args)).map(clean);
+        if (prop === "get") return (...args: unknown[]) => clean((value as (...a: unknown[]) => unknown).apply(target, bind(args)));
+        if (prop === "all") return (...args: unknown[]) => ((value as (...a: unknown[]) => unknown[]).apply(target, bind(args))).map(clean);
+        if (prop === "run") return (...args: unknown[]) => (value as (...a: unknown[]) => unknown).apply(target, bind(args));
         return typeof value === "function" ? value.bind(target) : value;
       } });
     },
