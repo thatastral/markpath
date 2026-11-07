@@ -250,9 +250,33 @@ details[open] > summary .chev { transform: rotate(90deg); }
 }
 .mp-mascot-item:hover .mp-mascot-bob { animation-play-state: paused; }
 
+/* Landing backdrop: a fine dot field that drifts, plus slow outlined rings and brand-token chips. */
+@keyframes mp-grid-drift { to { background-position: 240px 240px; } }
+.mp-dots {
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 24px 24px;
+  animation: mp-grid-drift 140s linear infinite;
+}
+@keyframes mp-mascot-roam {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  30% { transform: translate3d(var(--roam-x, 18px), calc(var(--roam-y, 12px) * -1), 0); }
+  60% { transform: translate3d(calc(var(--roam-x, 18px) * -0.7), var(--roam-y, 12px), 0); }
+  82% { transform: translate3d(calc(var(--roam-x, 18px) * 0.45), calc(var(--roam-y, 12px) * -0.35), 0); }
+}
+.mp-mascot-roam { animation: mp-mascot-roam var(--roam-dur, 28s) var(--ease-in-out-cubic) infinite; }
+
+/* Hero room: messages rise in, agent replies type themselves open, and a caret blinks a few times. */
+@keyframes mp-msg-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.mp-msg { animation: mp-msg-in 360ms var(--ease-out-cubic) both; }
+@keyframes mp-typing-dot { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+.mp-typing span { animation: mp-typing-dot 1.15s var(--ease-in-out-cubic) infinite; }
+.mp-typing span:nth-child(2) { animation-delay: 0.14s; }
+.mp-typing span:nth-child(3) { animation-delay: 0.28s; }
+
 @media (prefers-reduced-motion: reduce) {
   .mp-motion [data-reveal] { opacity: 1; transform: none; transition-duration: var(--duration-short); }
-  .mp-mascot-bob, .mp-mascot-eyes { animation: none; }
+  .mp-mascot-bob, .mp-mascot-eyes, .mp-dots, .mp-mascot-roam, .mp-msg, .mp-typing span { animation: none; }
   .mp-mascot-bob { will-change: auto; }
 }
+
 

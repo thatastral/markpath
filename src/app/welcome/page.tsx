@@ -3,6 +3,7 @@ import { Logo } from "@/components/main-nav";
 import { buttonClass } from "@/components/ui/primitives";
 import type { MascotKind } from "@/components/mascot";
 import { ChatWindow, LandingEffects } from "@/components/landing/effects";
+import { LandingBackdrop } from "@/components/landing/backdrop";
 import { MascotCloud } from "@/components/landing/mascot-cloud";
 import { StepVisual, ToolStrip } from "@/components/landing/visuals";
 
@@ -26,7 +27,8 @@ const agents: Array<[MascotKind, string, string]> = [
 ];
 
 export default function WelcomePage() {
-  return <div className="min-h-dvh overflow-x-clip bg-surface text-ink">
+  return <div className="relative min-h-dvh overflow-x-clip bg-surface text-ink">
+    <LandingBackdrop />
     <LandingEffects />
     <header className="sticky top-0 z-20 border-b border-border/60 bg-surface/85 backdrop-blur supports-[backdrop-filter]:bg-surface/70">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -43,7 +45,7 @@ export default function WelcomePage() {
       </div>
     </header>
 
-    <main>
+    <main className="relative z-10">
       <section className="mx-auto max-w-3xl px-4 pb-10 pt-16 text-center sm:px-6 sm:pb-14 sm:pt-24" data-reveal>
         <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-canvas px-3 py-1 text-xs text-muted"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ink" />Four agents, one Switch room</p>
         <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight sm:text-6xl">Keep your brand consistent everywhere.</h1>
@@ -52,11 +54,11 @@ export default function WelcomePage() {
           <Link className={buttonClass("primary", "md", "px-4")} href="/signup">Get started free</Link>
           <a className={buttonClass("secondary", "md", "px-4")} href={GITHUB} rel="noreferrer" target="_blank">View on GitHub</a>
         </div>
-        <p className="mt-4 text-xs text-muted">Works with GitHub, Figma and Canva · Chat in Telegram or Discord</p>
+        <p className="mt-4 text-xs text-muted">Works with GitHub, Figma and Canva · Telegram today, Discord and Slack soon</p>
       </section>
 
       <section aria-label="Works with" className="mx-auto max-w-4xl border-y border-border/70 px-4 py-6 sm:px-6" data-reveal style={{ "--reveal-delay": "60ms" } as React.CSSProperties}>
-        <p className="text-center text-2xs font-medium uppercase tracking-[0.14em] text-muted">Works with the tools your brand already uses</p>
+        <p className="text-center text-2xs font-medium uppercase tracking-[0.14em] text-muted">Works with the tools your brand uses</p>
         <div className="mt-4"><ToolStrip /></div>
       </section>
 
@@ -72,7 +74,7 @@ export default function WelcomePage() {
         </div>
         <ol className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => <li className="flex flex-col rounded-card border border-border bg-surface p-4" data-reveal key={s.n} style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}>
-            <div className="flex h-[120px] items-center rounded-panel border border-border bg-canvas p-1.5"><div className="w-full"><StepVisual step={i} /></div></div>
+            <div className="flex h-[140px] items-center rounded-panel border border-border bg-canvas p-2"><div className="h-full w-full"><StepVisual step={i} /></div></div>
             <div className="mt-4 flex items-center gap-2">
               <span aria-hidden className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border-strong text-2xs font-semibold tabular-nums text-muted">{s.n}</span>
               <h3 className="font-semibold">{s.title}</h3>
@@ -109,13 +111,13 @@ export default function WelcomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 pb-24 sm:px-6" data-reveal>
-        <div className="relative overflow-hidden rounded-card bg-[#101010] px-7 pb-16 pt-8 text-center text-white sm:px-12 sm:pt-10">
+        <div className="relative isolate overflow-hidden rounded-card bg-[#0d0e10] px-6 pb-16 pt-7 text-center text-white sm:px-12 sm:py-24">
           <MascotCloud variant="cta" />
-          <div className="relative z-10 mx-auto max-w-md">
+          <div className="relative z-10 mx-auto flex max-w-lg flex-col items-center">
             <h2 className="text-balance text-3xl font-semibold tracking-tight">Set up in minutes.</h2>
             <p className="mt-3 text-sm leading-6 text-white/65">Upload your guideline or paste your website. Connect GitHub, Figma and Canva. Bring the agents into your chat.</p>
             <div className="mt-7 flex flex-wrap justify-center gap-2">
-              <Link className="inline-flex min-h-10 items-center rounded-full bg-white px-5 text-sm font-medium text-[#101010] transition-opacity hover:opacity-90" href="/signup">Get started free</Link>
+              <Link className="inline-flex min-h-10 items-center rounded-full bg-white px-5 text-sm font-medium text-[#0d0e10] transition-opacity hover:opacity-90" href="/signup">Get started free</Link>
               <a className="inline-flex min-h-10 items-center rounded-full border border-white/25 px-5 text-sm font-medium text-white transition-colors hover:bg-white/10" href={DOCS} rel="noreferrer" target="_blank">Read the docs</a>
             </div>
           </div>
@@ -123,7 +125,7 @@ export default function WelcomePage() {
       </section>
     </main>
 
-    <footer className="border-t border-border">
+    <footer className="relative z-10 border-t border-border">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <span className="inline-flex items-center gap-2"><Logo size="sm" />Markpath · built for Flip the Switch, 2026</span>
         <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2">

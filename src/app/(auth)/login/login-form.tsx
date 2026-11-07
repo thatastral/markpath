@@ -27,7 +27,7 @@ export function LoginForm() {
   const serverError = Boolean(state.error);
   const forgotHref = email.trim() || state.email ? `/forgot-password?email=${encodeURIComponent((email || state.email || "").trim())}` : "/forgot-password";
   // key: a failed sign-in remounts the form with the email kept and focus on the password.
-  return <form action={action} className="mt-6 grid gap-4" key={state.n ?? 0} noValidate onSubmit={onSubmit}>
+  return <form action={action} className="grid gap-4" key={state.n ?? 0} noValidate onSubmit={onSubmit}>
     <Field error={errors.email} id="login-email" label="Email"><TextInput {...fieldAria("login-email", errors.email)} autoCapitalize="none" autoComplete="email" autoFocus={!serverError} defaultValue={state.email} inputMode="email" invalid={Boolean(errors.email)} name="email" onChange={(e) => { setEmail(e.target.value); clear("email")(); }} required spellCheck={false} type="email" /></Field>
     <Field error={errors.password} id="login-password" label="Password"><PasswordInput autoComplete="current-password" autoFocus={serverError} describedBy={errors.password ? "login-password-error" : serverError ? "login-error" : undefined} id="login-password" invalid={Boolean(errors.password) || serverError} name="password" onChange={clear("password")} required /></Field>
     {state.error && !errors.email && !errors.password && <p className="anim-rise rounded-control border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger" id="login-error" role="alert">{state.error}</p>}

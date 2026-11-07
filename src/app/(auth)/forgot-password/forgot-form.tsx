@@ -28,7 +28,7 @@ export function ForgotForm({ defaultEmail = "" }: { defaultEmail?: string }) {
     </form>
     <Link className={back} href="/login">Back to sign in</Link>
   </div>;
-  return <form action={action} className="mt-6 grid gap-4" key={state.n ?? 0}>
+  return <form action={action} className="grid gap-4" key={state.n ?? 0}>
     <Field error={state.error} id="forgot-email" label="Email"><TextInput {...fieldAria("forgot-email", state.error)} autoCapitalize="none" autoComplete="email" autoFocus defaultValue={state.email ?? defaultEmail} inputMode="email" invalid={Boolean(state.error)} name="email" required spellCheck={false} type="email" /></Field>
     <SubmitButton className={buttonClass("primary", "md", "w-full lg:min-h-9")} pendingLabel="Sending…">Send reset link</SubmitButton>
     <p className="text-center"><Link className={back} href="/login">Back to sign in</Link></p>

@@ -27,7 +27,7 @@ export function SignupForm() {
   }
   const clear = (k: keyof Errors) => () => { if (errors[k]) setErrors((x) => ({ ...x, [k]: undefined })); if (server[k]) setDismissed(state.n); };
   const focus = state.error ? state.field ?? "email" : "name";
-  return <form action={action} className="mt-6 grid gap-4" key={state.n ?? 0} noValidate onSubmit={onSubmit}>
+  return <form action={action} className="grid gap-4" key={state.n ?? 0} noValidate onSubmit={onSubmit}>
     <Field error={shown.name} id="signup-name" label="Name"><TextInput {...fieldAria("signup-name", shown.name)} autoComplete="name" autoFocus={focus === "name"} defaultValue={state.name} invalid={Boolean(shown.name)} name="name" onChange={clear("name")} required /></Field>
     <Field error={shown.email} id="signup-email" label="Work email"><TextInput {...fieldAria("signup-email", shown.email)} autoCapitalize="none" autoComplete="email" autoFocus={focus === "email"} defaultValue={state.email} inputMode="email" invalid={Boolean(shown.email)} name="email" onChange={clear("email")} required spellCheck={false} type="email" /></Field>
     {server.email && state.error?.includes("already has an account") && <p className="-mt-2 text-xs"><Link className="font-medium text-brand hover:underline" href="/login">Sign in instead</Link></p>}

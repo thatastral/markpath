@@ -40,7 +40,10 @@ export function suggestFromText(text: string, mode: "document" | "website" = "do
   const labelledRaw = web ? /--(?:[\w-]*?)(?:primary|brand|accent)[\w-]*\s*:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/i.exec(text)?.[1] : near(text, /(primary|brand|accent|main)[^\n]{0,30}(colou?r|blue|green|red|purple|orange)?/i, /(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/);
   const labelled = labelledRaw && !greyish(hex(labelledRaw)) ? labelledRaw : undefined;
   const previousColourRaw = web ? undefined : near(text, /\b(previous|old|legacy|former|replaces?|supersedes?)\b/i, /(#[0-9a-fA-F]{6})\b/);
-  const previousColour = previousColourRaw && !greyish(hex(previousColourRaw)) ? previousColourRaw : undefined;
+  // Prefer the colour right after "previous/old" (guidelines without line breaks put everything on one line).
+  const nearOld = web ? undefined : /\b(?:previous|old|legacy|former)\b[^#\n]{0,40}(#[0-9a-fA-F]{6})/i.exec(text)?.[1];
+  const prevPick = nearOld ?? previousColourRaw;
+  const previousColour = prevPick && !greyish(hex(prevPick)) ? prevPick : undefined;
   const fontCounts = new Map<string, number>();
   for (const m of text.matchAll(/font-family\s*:\s*([^;}{]+)/gi)) for (const part of m[1].split(",")) { const f = part.trim().replace(/^["']|["']$/g, "").replace(/!important/, "").trim(); if (f && !genericFonts.has(f.toLowerCase()) && !f.startsWith("var(") && !/fallback|emoji|symbol|icon/i.test(f)) { const name = prettyFont(f); if (name && !genericFonts.has(name.toLowerCase())) fontCounts.set(name, (fontCounts.get(name) ?? 0) + 1); } }
   for (const m of text.matchAll(/fonts\.googleapis\.com\/css2?\?family=([A-Za-z+]+)/g)) { const f = m[1].replace(/\+/g, " "); fontCounts.set(f, (fontCounts.get(f) ?? 0) + 5); }
@@ -54,7 +57,8 @@ export function suggestFromText(text: string, mode: "document" | "website" = "do
   const commonRadius = [...radiusCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
   const radius = (web ? undefined : near(text, /(button|btn|corner|radius)/i, /(\d+(?:\.\d+)?px)/)) ?? commonRadius;
   const previousRadius = web ? undefined : near(text, /\b(previous|old|legacy|former|replaces?|supersedes?)\b/i, /(\d+(?:\.\d+)?px)\s*(?:button )?radius/i);
-  const voice = web ? undefined : near(text, /(voice|tone)\s*[:\-–]/i, /(?:voice|tone)\s*[:\-–]\s*(.{8,240})/i);
+  const voiceRaw = web ? undefined : near(text, /(voice|tone)\s*[:\-–]/i, /(?:voice|tone)\s*[:\-–]\s*(.{8,240})/i);
+  const voice = voiceRaw?.split(/\s#{1,6}\s|\n/)[0].trim().slice(0, 200);
   const version = /version\s*v?([\d.]+)/i.exec(text)?.[1];
   const primaryColour = labelled ? hex(labelled) : colours[0];
   if (primaryColour) found.push("colour"); if (fonts[0]) found.push("typeface"); if (radius) found.push("corner radius"); if (voice) found.push("voice");

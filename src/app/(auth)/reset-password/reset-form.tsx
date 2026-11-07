@@ -26,7 +26,7 @@ export function ResetForm({ token }: { token: string }) {
   const error = state.error && dismissed !== state.n ? state.error : undefined;
   useEffect(() => { if (state.n) first.current?.querySelector("input")?.focus(); }, [state.n]);
   const clear = () => { if (error) setDismissed(state.n); };
-  return <form action={action} className="mt-6 grid gap-4" key={state.n ?? 0}>
+  return <form action={action} className="grid gap-4" key={state.n ?? 0}>
     <input name="token" type="hidden" value={token} />
     <div ref={first}><Field error={error} hint="At least 8 characters." id="reset-password" label="New password"><PasswordInput autoComplete="new-password" autoFocus describedBy={error ? "reset-password-error" : "reset-password-hint"} id="reset-password" invalid={Boolean(error)} minLength={8} name="password" onChange={clear} required /></Field></div>
     <Field id="reset-confirm" label="Confirm new password"><PasswordInput autoComplete="new-password" id="reset-confirm" invalid={Boolean(error)} minLength={8} name="confirm" onChange={clear} required /></Field>

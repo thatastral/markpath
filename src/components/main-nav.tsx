@@ -16,8 +16,8 @@ const links: Array<[string, string, ReactNode]> = [
 /** The Markpath mark: an M drawn as one path that stops at a marked point (the agreed brand value). */
 export function Logo({ size = "md" }: { size?: "sm" | "md" }) {
   const dims = size === "md" ? "h-6 w-6" : "h-5 w-5";
-  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-[6px] bg-ink text-surface ${dims}`}>
-    <svg fill="none" height="72%" viewBox="0 0 24 24" width="72%"><path d="M5.5 18.5V6.5l6.5 7 6.5-7v6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" /><circle cx="18.5" cy="17.5" fill="currentColor" r="2.4" /></svg>
+  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-[7px] bg-ink text-surface ${dims}`}>
+    <svg fill="none" height="78%" viewBox="0 0 24 24" width="78%"><path d="M5.6 18V9.3M5.6 12.7a3.4 3.4 0 0 1 6.8 0V18M12.4 12.7a3.4 3.4 0 0 1 6.8 0V18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" /></svg>
   </span>;
 }
 

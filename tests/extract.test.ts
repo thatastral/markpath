@@ -21,6 +21,10 @@ describe("brand extraction", () => {
     const s = suggestFromText("Primary typeface: Geist (bold headings).\nThese rules supersede the previous primary blue `#164B9B`, Inter typeface, and 4px button radius.");
     expect(s.previousTypeface).toBe("Inter"); expect(s.typeface).toBe("Geist");
   });
+  it("reads a guideline that has lost its line breaks", () => {
+    const s = suggestFromText("Primary blue: `#2457F5` Primary typeface: Geist Brand voice: Clear and calm. ## Accessibility Text contrast: 4.5:1 These rules supersede the previous primary blue `#164B9B`, Inter typeface, and 4px button radius.");
+    expect(s.previousColour).toBe("#164B9B"); expect(s.voice).toBe("Clear and calm.");
+  });
   it("recognises design links", () => {
     expect(isDesignLink("https://www.figma.com/design/abc123/x")).toBe("figma");
     expect(isDesignLink("https://www.canva.com/design/DAHaL7l9y7c/edit")).toBe("canva");
