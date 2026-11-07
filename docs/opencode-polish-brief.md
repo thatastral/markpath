@@ -17,7 +17,9 @@ Design direction: clean black and white (Attio-calm light theme, Linear-like dar
 ## Landing page (`src/app/welcome/page.tsx`)
 1. Hero: keep the headline and chat-window card (the owner likes them). Add a subtle product visual or the mascots in a tasteful way; no gradients or glows.
 2. "How it works": make the four steps feel richer (small visual per step, for example an issue row, an approval message, a pull request chip, a QA check), still clean.
-3. "Built on Switch": refine spacing and the agent cards; mascots may animate gently on hover (respect `prefers-reduced-motion`).
+3. "Built on Switch" (owner's priority): make the four mascots much bigger (about 72 to 120px), placed around the container unevenly, at random-looking positions, sizes and rotations, partly overlapping the card edges. Give them motion: a slow idle float or bob with different delays per mascot, a playful reaction on hover (squash, tilt or look toward the pointer), and blinking eyes. CSS keyframes or the Web Animations API only, no new packages; everything still under `prefers-reduced-motion: reduce` must stop moving.
+3b. Motion and interaction across the landing page: sections fade and rise in as they scroll into view (IntersectionObserver), buttons have press feedback, the chat-window card types its messages in one by one the first time it's seen, the step cards light up in order. Keep it subtle and fast (150 to 400ms), never blocking reading.
+3c. Use Mobbin (Linear, Attio, Vercel, Stripe, Raycast, Arc landing pages) to raise the whole landing page: section rhythm, headline sizes, contrast between sections, a stronger hero, social-proof-style strip (the tools it works with, using the coloured logos).
 4. "Set up in minutes" block and footer: polish; add links to GitHub and the docs.
 5. Mobile (375px): no sideways scroll, comfortable spacing.
 
