@@ -73,6 +73,16 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...(figmaMcp ? { figma: { url: figmaMcp.url, fileKey: figmaMcp.fileKey, next: "Ask the Design agent to audit this Figma file for this task through the Figma MCP. It adds the Figma approval; then post the approval request." } } : {}), ...(canvaMcp ? { canva: { url: canvaMcp.url, designId: canvaMcp.designId, next: "Ask the Design agent to audit this Canva design for this task through the Canva MCP. It adds the Canva approval." } } : {}), ...taskState(ctx, task.id) };
 }
 
+/** Configured Figma or Canva designs that an open task has not audited yet (for example Canva was unavailable to the Design agent the first time). */
+export function missingDesignAudits(brandId: string, taskId: string, status: string) {
+  if (!["PLAN_READY", "AWAITING_APPROVAL"].includes(status)) return [];
+  const has = (type: string) => Boolean(db().prepare("SELECT 1 FROM task_resources tr JOIN resources r ON r.id = tr.resource_id WHERE tr.task_id = ? AND r.resource_type = ?").get(taskId, type));
+  const out: Array<{ provider: "figma" | "canva"; url: string }> = [];
+  const f = figmaMcpConfig(brandId); if (f && !has("figma_file")) out.push({ provider: "figma", url: f.url });
+  const c = canvaMcpConfig(brandId); if (c && !has("canva_design")) out.push({ provider: "canva", url: c.url });
+  return out;
+}
+
 export function taskState(ctx: Pick<Ctx, "brandId">, taskId: string) {
   const task = taskRow(taskId, ctx.brandId);
   const resources = db().prepare("SELECT r.external_resource_id AS target, r.resource_name AS name, tr.status, tr.error, tr.verification_evidence FROM task_resources tr JOIN resources r ON r.id = tr.resource_id WHERE tr.task_id = ?").all(taskId) as Array<{ target: string; name: string; status: string; error: string | null; verification_evidence: string | null }>;
@@ -80,7 +90,9 @@ export function taskState(ctx: Pick<Ctx, "brandId">, taskId: string) {
   const executions = db().prepare("SELECT r.external_resource_id AS target, e.operation, e.result, e.mode, e.executed_at, e.evidence FROM execution_records e LEFT JOIN resources r ON r.id = e.resource_id WHERE e.task_id = ? ORDER BY e.executed_at").all(taskId) as Array<{ target: string; operation: string; result: string; mode: string; executed_at: string; evidence: string }>;
   const findings = db().prepare("SELECT i.provider, f.rule_id, f.detected_value, f.expected_value, f.severity, f.classification FROM findings f JOIN resources r ON r.id = f.resource_id LEFT JOIN integrations i ON i.id = r.integration_id WHERE f.brand_id = ? AND f.status = 'open'").all(task.brand_id);
   const pending = (approvals as Array<{ decision: string }>).filter((a) => a.decision === "pending").length;
-  return { taskId: task.id, status: task.status, description: task.description, approvalStatus: task.approval_status, pendingApprovals: pending, approvals, findings, resources: resources.map((r) => ({ ...r, verification_evidence: r.verification_evidence ? JSON.parse(r.verification_evidence) : null })), executions: executions.map((e) => ({ ...e, evidence: JSON.parse(e.evidence) })), nextStep: nextStep(task.status, pending) };
+  const missing = missingDesignAudits(task.brand_id, taskId, task.status);
+  const step = missing.length ? `Before asking for approval, mention @${teamPrefixFor(task.brand_id)}-design and ask it to audit ${missing.map((m) => `the ${m.provider === "canva" ? "Canva design" : "Figma file"} ${m.url}`).join(" and ")} for task ${task.id}, so one approval covers everything. Then post the approval request.` : nextStep(task.status, pending);
+  return { taskId: task.id, status: task.status, description: task.description, approvalStatus: task.approval_status, pendingApprovals: pending, missingDesignAudits: missing, approvals, findings, resources: resources.map((r) => ({ ...r, verification_evidence: r.verification_evidence ? JSON.parse(r.verification_evidence) : null })), executions: executions.map((e) => ({ ...e, evidence: JSON.parse(e.evidence) })), nextStep: step };
 }
 function nextStep(status: string, pending: number) {
   if (status === "AWAITING_APPROVAL") return pending > 0 ? "A human must approve each pending operation in the Markpath dashboard (Issues and approvals). Agents cannot approve." : "All approvals decided. Implementation and Design agents may execute.";

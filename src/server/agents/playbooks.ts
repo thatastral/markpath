@@ -9,9 +9,10 @@ const bodies: Record<AgentRole, (t: string, base: string) => string> = {
   director: (t, base) => `You are the Brand Director. Run the Detect, Coordinate, Correct, Verify workflow. You work in short turns: do your step, post, then end your turn and wait to be addressed again.
 A. When asked to audit, or to fix, repair or apply the issues from a review or the dashboard Issues page (for example "fix this", "fix these issues"): POST ${base}/api/agent/audit with {}. Never answer a fix request by asking the person to say "run the audit" or by looking for an old approval: starting the audit IS how fixes get prepared for approval. If the response says nothingToFix: true, say there is nothing to fix. If it says reused: true, continue with that task.
  A1. If the response has a "figma" and/or "canva" field, the workspace audits those designs through the Figma MCP and the Canva MCP: post ONE message mentioning @${t}-design with the task id and the URL of each (Figma file, Canva design), asking it to audit them and add the approval requests, then to report back to @${t}-director. End your turn. Do not post the approval request yet.
- A2. If there is no "figma" field, go straight to step P.
+ A0. If the response has reused: true (a task is already open), check "missingDesignAudits": if it lists anything, do A1 for exactly those links (a design that was not audited before, for example because Design could not reach Canva then), even if the task is awaiting approval. Only when it is empty, remind the person the task is waiting for approval (step P).
+ A2. If there is no "figma" or "canva" field and missingDesignAudits is empty, go straight to step P.
 P. Post ONE message that @-mentions the person who asked you (their handle exactly as shown in the room): the task id, the findings per platform, and how to approve: reply "@${t}-director approve" (or "@${t}-director reject") in this room, or use the link ${base}/approve/<task id>. Do NOT mention @${t}-design, @${t}-implementation or @${t}-qa yet. Agents cannot approve. End your turn.
-F. When @${t}-design reports back from its Figma audit: if the task status (GET ${base}/api/agent/task?taskId=<id>) is still PLAN_READY, call POST ${base}/api/agent/ready-for-approval with {"taskId": "<id>"}. Then do step P. If Design says it could not reach Figma, say so in the room and offer to continue with GitHub only: if the person agrees, call ready-for-approval and do step P.
+F. When @${t}-design reports back from its Figma and/or Canva audit: if the task status (GET ${base}/api/agent/task?taskId=<id>) is still PLAN_READY, call POST ${base}/api/agent/ready-for-approval with {"taskId": "<id>"}. Then do step P. If Design says it could not reach Figma, say so in the room and offer to continue with GitHub only: if the person agrees, call ready-for-approval and do step P.
 B. When a person replies approve or reject (explicit word): if you do not already know the task id, GET ${base}/api/agent/pending and use the newest one; if it lists nothing, say nothing is waiting for approval and offer to prepare fixes (that is step A), rather than asking which changes. Then find the sender's chat handle (shown in the message header if present; otherwise call read_context for the room and use the sender of that message_id), then POST ${base}/api/agent/chat-approval with {"taskId": "<id>", "senderHandle": "<handle>", "roomId": "<room_id>", "messageId": "<message_id>", "quote": "<their exact text>"}. If refused, post the refusal and the link ${base}/approve/<task id>, and stop. If rejected, report that and stop. If approved, post ONE message mentioning @${t}-design and @${t}-implementation: approvals are in for task <id>; Design applies the approved Figma change, Implementation executes the github operation; each reports to @${t}-director when done.
 C. If a person says they approved through the link: call GET ${base}/api/agent/task?taskId=<id>. If pendingApprovals is 0 and approvals are approved, do the step in B for the approved case; otherwise say approvals are still pending.
 V. REVIEW: when asked to vet, review or check a link (a Figma design, a Canva design or a GitHub pull request): POST ${base}/api/agent/vet with {"url": "<the link>"}. This is read-only: no task, no approval, no edits.
@@ -75,5 +76,13 @@ const intents: Record<AgentRole, (t: string, base: string) => string> = {
 
 export function playbook(role: AgentRole, team: string, base: string) {
   const safeTeam = team.replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "markpath";
-  return `${bodies[role](safeTeam, base)}\n\n${intents[role](safeTeam, base)}\n\n${talk(safeTeam, base)}\n\n${common(base)}`;
+  const text = `${bodies[role](safeTeam, base)}\n\n${intents[role](safeTeam, base)}\n\n${talk(safeTeam, base)}\n\n${common(base)}`;
+  // Links people open (approve, issues, integrations) use the public address when one is set; agents keep calling the API at base.
+  const pub = publicUrl(base);
+  return pub === base ? text : text.replace(new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/(approve|issues|integrations)`, "g"), `${pub}/$1`);
+}
+
+/** MARKPATH_PUBLIC_URL is the address teammates can open; falls back to the address the request came in on. */
+export function publicUrl(fallback: string) {
+  return (process.env.MARKPATH_PUBLIC_URL?.trim() || fallback).replace(/\/$/, "");
 }

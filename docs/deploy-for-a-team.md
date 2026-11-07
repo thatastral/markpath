@@ -29,3 +29,7 @@ Follow Switch's current steps in its repository. From its docs: run it with Dock
 - Figma and Canva edits run through the connected account on the agent host. Canva has no shared account, so edits run as one person; per-person Canva links are not built.
 - GitHub uses an OAuth app with the `repo` scope. A GitHub App with per-repository permissions is the right production choice.
 - Nothing here has been load tested or security reviewed by a third party.
+
+
+## Approval links for teammates
+Set `MARKPATH_PUBLIC_URL` to the address your team opens (for example `https://markpath.yourcompany.com`). The agents keep calling the API on the address in the room template, but every approval, issues and integrations link they post uses the public address. Without it, links say `localhost`, which only works on the machine running Markpath.

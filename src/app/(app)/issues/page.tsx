@@ -5,7 +5,7 @@ import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { activeBrandForUser } from "@/server/workspace/active";
 import { getApprovals, getFindings, type ApprovalRow } from "@/server/dashboard/service";
-import { describeApproval, groupFindings, providerName, ruleName, severityName, whenText } from "@/lib/labels";
+import { describeApproval, groupFindings, providerName, resourceLabel, ruleName, severityName, whenText } from "@/lib/labels";
 import { decideTask } from "../approve/[taskId]/actions";
 import { decideDashboardApproval } from "./actions";
 
@@ -13,6 +13,7 @@ type PageProps = { searchParams: Promise<{ provider?: string; severity?: string;
 const chip = "rounded-full border border-border px-3 py-1 text-sm";
 const primary = "rounded-[var(--radius-control)] bg-brand px-4 py-2 text-sm font-semibold text-white";
 const secondary = "rounded-[var(--radius-control)] border border-border px-4 py-2 text-sm font-medium";
+const decisionName = (d: string) => ({ approved: "Approved", rejected: "Rejected", pending: "Waiting for you" } as Record<string, string>)[d] ?? `${d.charAt(0).toUpperCase()}${d.slice(1).replaceAll("_", " ").toLowerCase()}`;
 const via = (c: string | null) => (c === "chat_relayed" ? "by a chat reply" : c === "dashboard" ? "in the dashboard" : "");
 
 export default async function IssuesPage({ searchParams }: PageProps) {
@@ -48,8 +49,9 @@ export default async function IssuesPage({ searchParams }: PageProps) {
       <nav aria-label="Filter issues" className="mt-3 flex flex-wrap gap-2">{links.map(([label, href, on]) => <Link aria-current={on ? "page" : undefined} className={`${chip} ${on ? "border-brand bg-brand text-white" : ""}`} href={href} key={label}>{label}</Link>)}</nav>
       <div className="mt-4 grid gap-3">{groups.length === 0 ? <p className="rounded-lg border border-border bg-surface p-5 text-muted">{filtered ? "No open issues match this filter." : "No open issues. Ask the Brand Director in your chat room to check your designs and code, or paste a link and ask “is this on brand?”."}</p> : groups.map((g) => {
         const person = g.classification === "needs_review";
+        const named = resourceLabel(g.provider, g.resource); const where = named !== g.resource ? named : `${providerName(g.provider)} · ${g.resource}`;
         return <article className="rounded-lg border border-border bg-surface p-5" key={g.key}>
-          <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{ruleName(g.rule)} <span className="font-normal text-muted">· {providerName(g.provider)} · {g.resource}</span></h3><span className="text-sm text-muted">{person ? "Needs a person · " : ""}{severityName(g.severity)}</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{ruleName(g.rule)} <span className="font-normal text-muted">· {where}</span></h3><span className="text-sm text-muted">{person ? "Needs a person · " : ""}{severityName(g.severity)}</span></div>
           <p className="mt-2">{person ? <>{g.detected} <span className="text-muted">Expected: {g.expected}</span></> : <>{g.count === 1 ? "1 place uses" : `${g.count} places use`} <strong>{g.detected}</strong>. It should be <strong>{g.expected}</strong>.</>}</p>
           {g.confidence < 1 && <p className="mt-1 text-sm text-muted">Confidence {Math.round(g.confidence * 100)}%. A person should check this.</p>}
           {person && <p className="mt-1 text-sm text-muted">{g.recommended}</p>}
@@ -57,6 +59,6 @@ export default async function IssuesPage({ searchParams }: PageProps) {
         </article>; })}</div>
     </section>
 
-    {decided.length > 0 && <section className="mt-10"><details><summary className="cursor-pointer text-lg font-semibold">Earlier decisions ({decided.length})</summary><ul className="mt-3 grid gap-2">{decided.map((a) => { const v = describeApproval(a.approved_action, a.resource_name, a.resource_ref); return <li className="rounded-lg border border-border bg-surface p-4 text-sm" key={a.id}><p className="font-medium">{v.heading}</p><p className="text-muted">{a.decision === "approved" ? "Approved" : a.decision === "rejected" ? "Rejected" : a.decision} {via(a.decision_channel)} · {whenText(a.created_at)}</p></li>; })}</ul></details></section>}
+    {decided.length > 0 && <section className="mt-10"><details><summary className="cursor-pointer text-lg font-semibold">Earlier decisions ({decided.length})</summary><ul className="mt-3 grid gap-2">{decided.map((a) => { const v = describeApproval(a.approved_action, a.resource_name, a.resource_ref); return <li className="rounded-lg border border-border bg-surface p-4 text-sm" key={a.id}><p className="font-medium">{v.heading}</p><p className="text-muted">{decisionName(a.decision)} {via(a.decision_channel)} · {whenText(a.created_at)}</p></li>; })}</ul></details></section>}
   </main>;
 }

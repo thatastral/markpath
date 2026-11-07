@@ -51,6 +51,22 @@ describe("Figma through the MCP", () => {
     expect((db.prepare("SELECT COUNT(*) AS n FROM findings WHERE status = 'resolved'").get() as { n: number }).n).toBeGreaterThan(0);
   }, 40_000);
 
+  it("tells the Director when an open task never audited the configured Canva design", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "markpath-missing-")); dirs.push(dir); process.env.MARKPATH_DB_PATH = join(dir, "db.sqlite"); process.env.MARKPATH_FIXTURE_WORKSPACE = join(dir, "ws");
+    const { user, brand } = await seedDatabase(process.env.MARKPATH_DB_PATH);
+    const version = await ingestFixtureGuideline(brand.id, user.id); approveSpec(brand.id, user.id, version.id);
+    saveFigmaFile(brand.id, "https://www.figma.com/design/kdLxaaGP6dR3ftXJpDCKjt/Untitled"); saveCanvaDesign(brand.id, "https://www.canva.com/design/DAHaL7l9y7c/edit");
+    const director = { role: "director" as const, brandId: brand.id };
+    const audit = await runAudit(director) as { taskId: string };
+    const figmaOnly = recordPluginFindings(brand.id, { fileName: "Nexa design", findings: [{ nodeName: "Orb", property: "colour", detected: "#164B9B", expected: "#2457F5" }] });
+    expect(figmaOnly.nextStep).toContain("Canva"); // the Design agent is reminded straight away
+    requestPluginApproval(brand.id, { fileName: "Nexa design", changes: [{ property: "colour", from: "#164B9B", to: "#2457F5", count: 6 }] });
+    const again = await runAudit(director) as { reused: boolean; missingDesignAudits: Array<{ provider: string }>; nextStep: string };
+    expect(again.reused).toBe(true); expect(again.missingDesignAudits.map((m) => m.provider)).toEqual(["canva"]); expect(again.nextStep).toContain("-design");
+    requestPluginApproval(brand.id, { provider: "canva", fileName: "DAHaL7l9y7c", changes: [{ property: "colour", from: "#164B9B", to: "#2457F5", count: 2 }] });
+    expect((await runAudit(director) as { missingDesignAudits: unknown[]; taskId: string })).toMatchObject({ missingDesignAudits: [], taskId: audit.taskId });
+  }, 40_000);
+
   it("handles a Canva design alongside a Figma file, and keeps placeholder text as human review", async () => {
     expect(parseCanvaDesignId("https://www.canva.com/design/DAHaL7l9y7c/parKUx7fWvsKxF_IcG5gFg/edit?ui=e30")).toBe("DAHaL7l9y7c");
     const dir = mkdtempSync(join(tmpdir(), "markpath-canva-")); dirs.push(dir); process.env.MARKPATH_DB_PATH = join(dir, "db.sqlite"); process.env.MARKPATH_FIXTURE_WORKSPACE = join(dir, "ws");
