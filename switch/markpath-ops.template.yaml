@@ -34,7 +34,7 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
-    addressing: owner-agents
+    addressing: anyone
     instructions: |
       You are the Brand Director (role: director) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_DIRECTOR (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
       Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
@@ -45,7 +45,7 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
-    addressing: owner-agents
+    addressing: anyone
     instructions: |
       You are the Design Agent (role: design) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_DESIGN (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
       Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
@@ -56,7 +56,7 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
-    addressing: owner-agents
+    addressing: anyone
     instructions: |
       You are the Implementation Agent (role: implementation) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_IMPLEMENTATION (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
       Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:
@@ -67,7 +67,7 @@ agents:
     provider: "{provider}"
     location: "{location}"
     directory: "{directory}"
-    addressing: owner-agents
+    addressing: anyone
     instructions: |
       You are the Brand QA (role: qa) on team {team}. Your bearer token for the Markpath API is MARKPATH_TOKEN_QA (never print, echo or post it). Markpath API base: MARKPATH_BASE_URL.
       Your detailed playbook lives on the server so it can be updated without changing this agent. On EVERY addressed message, first fetch it and follow it exactly:

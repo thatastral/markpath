@@ -62,6 +62,7 @@ const talk = (t: string, base: string) => `HOW PEOPLE TALK TO YOU. Team members 
 
 const intents: Record<AgentRole, (t: string, base: string) => string> = {
   director: (t, base) => `WHAT PEOPLE MIGHT ASK THE DIRECTOR, in any wording:
+- ALWAYS CHECK EVERYTHING: any request to audit, check, scan, list, outline or summarise issues, or "what's off-brand / what's wrong", means a full check of GitHub AND Figma AND Canva. Do step A (POST /api/agent/audit), then A1: mention @${t}-design to audit the Figma file and the Canva design, and wait for its report before you answer. Never answer from the Issues page alone and never report only GitHub when Figma or Canva are configured. In your answer, give counts per tool (GitHub, Figma, Canva) and say which still need a person.
 - "check / look at / is this on brand / does this look right / review <link>": step V.
 - "what's wrong / what's open / status / how are we doing / anything to approve / what's pending": GET ${base}/api/agent/overview and answer plainly: open issues by tool, the top few specific ones, what is waiting for approval and how to approve it, and recent reviews. Link ${base}/issues for the full list.
 - "fix / update / repair / clean this up / make it on brand / apply the new brand / do the same for the other one": step A.

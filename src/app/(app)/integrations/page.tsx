@@ -166,7 +166,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
               <span className={`${help} text-xs`}>Checks only look. Nothing changes, and results show up in Reviews.</span>
               <div><SubmitButton className={setupUi.secondary} pendingLabel="Saving…">Save checks</SubmitButton></div>
             </form>
-            <form action={runRepoAuditAction} className="mt-3"><SubmitButton className={setupUi.secondary} pendingLabel="Checking…">Check the repository now</SubmitButton></form>
+            <form action={runRepoAuditAction} className="mt-3"><SubmitButton className={setupUi.secondary} pendingLabel="Checking…">Check the repository now</SubmitButton></form><p className="mt-2 text-xs text-muted">This checks code only. To check GitHub, Figma and Canva together, ask <code>@{teamPrefix}-director audit everything</code> in the room.</p>
           </> : <p className="mt-2 text-muted">Connect GitHub and choose a repository in step 2 first.</p>}
         </section>
         <section aria-labelledby="figma-more" className="px-4 py-5 sm:px-5">

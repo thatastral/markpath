@@ -2,12 +2,12 @@
 
 **Ready before recording:** Telegram group with the 4 agents, the Discord channel (optional), the dashboard signed in, and Figma, Canva and GitHub open in tabs. Chat username set to `thatastral` on Integrations. Make new keys first.
 
-What's off-brand right now: the Figma file (16 old values plus a contrast issue), the Canva poster (old blue, plus template text), and the GitHub repo (`src/styles/campaign.css`: old blue, Inter and 4px).
+What's off-brand right now (about 9+ issues once the old colour `#164B9B` is in your brand rules): the Figma file (16 old values plus a contrast issue), the Canva poster (old blue, plus template text), and the GitHub repo (`src/styles/campaign.css`: old blue, Inter and 4px).
 
 | Time | Show | Do / say |
 | --- | --- | --- |
 | 0:00 | Landing page | "Brand drift is everywhere: old colours in code, old fonts in Figma, a Canva poster nobody updated. Markpath fixes it with four agents in a Switch room." |
-| 0:15 | Telegram | Send `@mp-director fix the issues`. "I just ask in plain words." |
+| 0:15 | Telegram | Send `@mp-director audit everything and fix the issues`. "I just ask in plain words. It checks GitHub, Figma and Canva together." |
 | 0:30 | Telegram | The Director and Design agent report what they found in GitHub, Figma and Canva. "They read the real files." |
 | 0:50 | Dashboard → Issues | "Every issue, old value and new value, in one place. Nothing has changed yet." |
 | 1:05 | Telegram | Send `@mp-director approve`. "Nothing changes until I approve this exact change." |
@@ -21,3 +21,5 @@ What's off-brand right now: the Figma file (16 old values plus a contrast issue)
 Say once: "Contrast, logo and leftover text are flagged for a person, never auto-fixed. Canva can't change fonts."
 
 After recording: close the pull request and make new keys again.
+
+**Teammates:** anyone in the group can ask the agents for checks and fixes (agents set to "Anyone" in Switch). Only you can approve.
