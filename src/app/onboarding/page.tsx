@@ -5,20 +5,16 @@ import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { activeBrandForUser } from "@/server/workspace/active";
 import { getSetupData } from "@/server/dashboard/setup";
-import { Logo } from "@/components/main-nav";
 import { GithubConnect } from "@/components/github-connect";
 import { CopyRoomTemplate } from "@/components/copy-room-template";
 import { ChatApps } from "@/components/chat-apps";
 import { SetupCopyButton } from "@/components/setup-copy-button";
 import { SetupRefreshButton } from "@/components/setup-refresh-button";
 import { SetupExternalLink } from "@/components/setup-external-link";
-import { ThemeSwitcher } from "@/components/theme/theme-switcher";
-import { readTheme } from "@/components/theme/read-theme";
 import { buttonClass, Notice, Progress, Swatch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { CheckIcon } from "@/components/ui/icons";
 import { currentBrandDraft } from "@/server/brand/service";
-import { logout } from "@/app/(app)/actions";
 import { BrandStep } from "./brand-step";
 import { StepFocus } from "./step-focus";
 import { AgentPrefixForm, DesignStep, LogoStep } from "./steps";
@@ -68,7 +64,6 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const brandView = current !== "brand" ? null : params.new ? "new" : params.edit && draft ? "edit" : done.brand && draft ? "summary" : "new";
   const logo = current === "logo" ? db.prepare("SELECT content_type, data_base64 FROM brand_assets WHERE brand_id = ? AND kind = 'logo' ORDER BY created_at DESC LIMIT 1").get(brand.id) as { content_type: string; data_base64: string | null } | undefined : undefined;
   const logoPreview = logo?.data_base64 && /^image\/(png|jpeg|webp)$/.test(logo.content_type) ? `data:${logo.content_type};base64,${logo.data_base64}` : undefined;
-  const theme = await readTheme();
 
   return <div className="relative min-h-dvh overflow-hidden bg-canvas">
     {/* A quiet picture of the dashboard behind the setup window, blurred, so setup feels like a step inside the app. */}

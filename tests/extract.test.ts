@@ -17,6 +17,10 @@ describe("brand extraction", () => {
     const s = suggestFromText("The typeface: The quick brown fox. Colour #222222 and #2457F5.");
     expect(s.typeface).toBeUndefined(); expect(s.primaryColour).toBe("#2457F5");
   });
+  it("doesn't read 'bold' as 'old' or 'Primary' as an old typeface", () => {
+    const s = suggestFromText("Primary typeface: Geist (bold headings).\nThese rules supersede the previous primary blue `#164B9B`, Inter typeface, and 4px button radius.");
+    expect(s.previousTypeface).toBe("Inter"); expect(s.typeface).toBe("Geist");
+  });
   it("recognises design links", () => {
     expect(isDesignLink("https://www.figma.com/design/abc123/x")).toBe("figma");
     expect(isDesignLink("https://www.canva.com/design/DAHaL7l9y7c/edit")).toBe("canva");

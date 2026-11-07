@@ -9,3 +9,6 @@ coverage
 *.tsbuildinfo
 .vercel
 .env*
+
+# macOS
+.DS_Store

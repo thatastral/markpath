@@ -6,7 +6,7 @@ import { initializeSchema } from "@/server/db/schema";
 import { activeBrandForUser } from "@/server/workspace/active";
 import { resourceLabel, reviewKindName, ruleName, whenText, withCanvaLabels } from "@/lib/labels";
 import { Badge, buttonClass, EmptyState, PageHeader, rowClass, StatusIcon, type StatusKind, type Tone } from "@/components/ui/primitives";
-import { CheckIcon, ChevronRight, ProviderIcon, SearchIcon } from "@/components/ui/icons";
+import { CheckIcon, ProviderIcon, SearchIcon } from "@/components/ui/icons";
 import { pageTitle } from "../page-title";
 export async function generateMetadata() { return { title: await pageTitle("Reviews") }; }
 
@@ -35,7 +35,7 @@ export default async function ReviewsPage() {
             <span className="flex items-center gap-2"><Badge tone={tone[r.verdict] ?? "neutral"}>{r.verdict === "clean" && <CheckIcon className="-ml-0.5" size={11} />}{label[r.verdict] ?? r.verdict.replaceAll("_", " ")}</Badge><time className="whitespace-nowrap text-xs tabular-nums text-muted" dateTime={r.created_at}>{whenText(r.created_at)}</time></span>
           </div>
           <p className="mt-0.5 text-sm text-muted">{withCanvaLabels(r.summary)}</p>
-          {items.length > 0 && <details className="text-xs text-muted"><summary className="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-control font-medium hover:text-ink lg:min-h-7"><ChevronRight className="chev" size={12} /><span className="tabular-nums">{items.length === 1 ? "1 issue found" : `${items.length} issues found`}</span></summary><ul className="mb-1 ml-1.5 grid gap-0.5 border-l border-border pl-3 text-sm">{items.map((l, i) => <li key={i}>{l}</li>)}</ul></details>}
+          {items.length > 0 && <div className="mt-2 rounded-control border border-border bg-subtle px-3 py-2 text-xs text-muted"><p className="font-medium tabular-nums text-ink">{items.length === 1 ? "1 issue found" : `${items.length} issues found`}</p><ul className="mt-1 grid gap-0.5">{items.map((l, i) => <li key={i}>{l}</li>)}</ul></div>}
         </div>
       </li>; })}</ul>}
   </main>;

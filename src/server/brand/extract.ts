@@ -39,7 +39,7 @@ export function suggestFromText(text: string, mode: "document" | "website" = "do
   const colours = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c).slice(0, 8);
   const labelledRaw = web ? /--(?:[\w-]*?)(?:primary|brand|accent)[\w-]*\s*:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/i.exec(text)?.[1] : near(text, /(primary|brand|accent|main)[^\n]{0,30}(colou?r|blue|green|red|purple|orange)?/i, /(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b/);
   const labelled = labelledRaw && !greyish(hex(labelledRaw)) ? labelledRaw : undefined;
-  const previousColourRaw = web ? undefined : near(text, /(previous|old|legacy|former|replaces|supersede)/i, /(#[0-9a-fA-F]{6})\b/);
+  const previousColourRaw = web ? undefined : near(text, /\b(previous|old|legacy|former|replaces?|supersedes?)\b/i, /(#[0-9a-fA-F]{6})\b/);
   const previousColour = previousColourRaw && !greyish(hex(previousColourRaw)) ? previousColourRaw : undefined;
   const fontCounts = new Map<string, number>();
   for (const m of text.matchAll(/font-family\s*:\s*([^;}{]+)/gi)) for (const part of m[1].split(",")) { const f = part.trim().replace(/^["']|["']$/g, "").replace(/!important/, "").trim(); if (f && !genericFonts.has(f.toLowerCase()) && !f.startsWith("var(") && !/fallback|emoji|symbol|icon/i.test(f)) { const name = prettyFont(f); if (name && !genericFonts.has(name.toLowerCase())) fontCounts.set(name, (fontCounts.get(name) ?? 0) + 1); } }
@@ -48,11 +48,12 @@ export function suggestFromText(text: string, mode: "document" | "website" = "do
   const labelledFontRaw = web ? undefined : near(text, /(primary|brand|main|heading|body)?\s*(typeface|font)\b(?!-)/i, /(?:typeface|font)[^:\n]*[:\-–]\s*`?["']?([A-Z][A-Za-z0-9]*(?: [A-Z][A-Za-z0-9]*){0,2})/);
   const labelledFont = labelledFontRaw && !stop.has(labelledFontRaw.split(" ")[0]) ? labelledFontRaw : undefined;
   const fonts = [...new Set([...(labelledFont ? [labelledFont] : []), ...[...fontCounts.entries()].sort((a, b) => b[1] - a[1]).map(([f]) => f)])].slice(0, 6);
-  const previousTypeface = web ? undefined : near(text, /(previous|old|legacy|former|supersede)/i, /([A-Z][A-Za-z]+) (?:typeface|font)/);
+  const previousTypefaceRaw = web ? undefined : near(text, /\b(previous|old|legacy|former|replaces?|supersedes?)\b/i, /(?:^|[\s,`])(?!(?:Primary|Brand|Main|Body|Heading|The|This)\b)([A-Z][A-Za-z]+) (?:typeface|font)/);
+  const previousTypeface = previousTypefaceRaw;
   const radiusCounts = new Map<string, number>(); for (const m of text.matchAll(/border-radius\s*:\s*(\d+(?:\.\d+)?px)/gi)) if (Number.parseFloat(m[1]) >= 2 && Number.parseFloat(m[1]) <= 24) radiusCounts.set(m[1], (radiusCounts.get(m[1]) ?? 0) + 1);
   const commonRadius = [...radiusCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
   const radius = (web ? undefined : near(text, /(button|btn|corner|radius)/i, /(\d+(?:\.\d+)?px)/)) ?? commonRadius;
-  const previousRadius = web ? undefined : near(text, /(previous|old|legacy|former|supersede)/i, /(\d+(?:\.\d+)?px)\s*(?:button )?radius/i);
+  const previousRadius = web ? undefined : near(text, /\b(previous|old|legacy|former|replaces?|supersedes?)\b/i, /(\d+(?:\.\d+)?px)\s*(?:button )?radius/i);
   const voice = web ? undefined : near(text, /(voice|tone)\s*[:\-–]/i, /(?:voice|tone)\s*[:\-–]\s*(.{8,240})/i);
   const version = /version\s*v?([\d.]+)/i.exec(text)?.[1];
   const primaryColour = labelled ? hex(labelled) : colours[0];
