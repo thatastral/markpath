@@ -47,7 +47,16 @@ export function recordPluginFindings(brandId: string, input: unknown) {
   db().prepare("UPDATE integrations SET connection_status = 'connected', last_checked_at = ? WHERE brand_id = ? AND provider = ? AND mode = 'mcp'").run(new Date().toISOString(), brandId, body.provider);
   replaceDesignFindings(brandId, ensureDesignResource(brandId, body.provider, body.fileName), body.findings); // so every issue is itemised on the Issues page
   recordActivity({ brandId: brand(brandId).id, agentName: actor, activityType: "plugin_inspection", status: `${body.findings.length} outdated value(s) in "${body.fileName}"` });
-  return { recorded: body.findings.length };
+  return { recorded: body.findings.length, ...designNextStep(brandId, body.provider) };
+}
+
+/** Tells the Design agent what it still has to audit, so it cannot silently skip Canva or Figma. */
+function designNextStep(brandId: string, done: "figma" | "canva") {
+  const other = done === "figma" ? "canva" : "figma";
+  const cfg = other === "canva" ? canvaMcpConfig(brandId) : figmaMcpConfig(brandId);
+  if (!cfg) return {};
+  const fresh = db().prepare("SELECT 1 FROM findings f JOIN resources r ON r.id = f.resource_id WHERE r.brand_id = ? AND r.resource_type = ? AND f.created_at > ? LIMIT 1").get(brandId, `${other}_${other === "canva" ? "design" : "file"}`, new Date(Date.now() - 15 * 60_000).toISOString());
+  return fresh ? {} : { nextStep: `${other === "canva" ? "Canva" : "Figma"} is configured but not audited in this request yet. Audit it now (${other === "canva" ? "CANVA AUDIT" : "AUDIT"}), then report both together.` };
 }
 
 const requestBody = z.object({ provider: z.enum(["figma", "canva"]).default("figma"), fileName: z.string().min(1).max(200), changes: z.array(z.object({ property: z.string().max(60), from: z.string().max(60), to: z.string().max(60), count: z.number().int().min(0).max(100000) })).min(1).max(20) });
@@ -63,7 +72,7 @@ export function requestPluginApproval(brandId: string, input: unknown) {
   } else addTaskResource(task.id, resource.id);
   const approvalId = requestApproval(task.id, owner?.user_id ?? "", { resourceId: resource.id, operation, payload: { provider: body.provider, fileName: body.fileName, changes: body.changes } }, actor);
   if (task.status === "PLAN_READY") transitionTask(task.id, "AWAITING_APPROVAL", actor);
-  return { approvalId, taskId: task.id, status: "pending", where: "Ask the workspace owner to approve this in the Markpath dashboard under Issues & approvals." };
+  return { ...designNextStep(b.id, body.provider), approvalId, taskId: task.id, status: "pending", where: "Ask the workspace owner to approve this in the Markpath dashboard under Issues & approvals." };
 }
 
 export function approvedPluginOperations(brandId: string) {

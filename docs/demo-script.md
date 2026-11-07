@@ -1,11 +1,19 @@
-# Demo script
+# Demo script (about 3 minutes)
 
-1. Run `npm run demo:reset`. It creates the Nexa user and workspace, approves the source fixture specification, scans the GitHub-style and Figma-style fixtures, and stages six confirmed findings plus two pending exact approvals.
-2. Start `npm run dev`, sign in as `demo@markpath.local` / `markpath-demo`, and show the Overview counts. Explain that they are records, not an invented health score.
-3. Show Brand profile with its approved, source-linked Nexa 2.0 rules.
-4. Open Issues & approvals. Compare detected and expected values. Approve the two resource-bound operations. An approval cannot authorize a changed payload or another resource.
-5. Run `npm run demo:complete`. It refuses unless both prior decisions are `approved`; it creates a local feature branch and commit for the code fixture, edits the Figma JSON fixture, then runs independent QA.
-6. Refresh Agent activity and Issues & approvals. Explain that completion is recorded only after QA checks the expected values, absence of legacy values, and Git diff scope.
-7. In Switch Console, with the local server running, import the checked-in room template and create the room. Show real addressed `@markpath-director` delegation and the agent's reply only after it is actually received. Do not call this complete until the room reference is visible in Markpath activity.
+Before recording: rotate agent keys (Integrations → room template), reset the Figma and Canva files to their off-brand state (`docs/figma-test-file.md`, `docs/canva-test-design.md`), open the Switch room and the dashboard side by side.
 
-Fixture correction evidence is local. It is not a GitHub pull request, real Figma edit, or evidence of a Switch room reply.
+| Time | Show | Say |
+| --- | --- | --- |
+| 0:00 | Overview + Brand profile | "Markpath keeps a company's approved brand rules and checks every place the brand lives: code, Figma, Canva." |
+| 0:20 | Switch room | Four agents: Director, Design, Implementation, QA. Nothing happens until someone @mentions them. |
+| 0:30 | Type `@mp-director fix the issues` | Plain words, no commands. |
+| 0:45 | Design replies: Figma 16 + Canva 2 items, 1 needs a person | The agents read the real files through the Figma and Canva connectors. |
+| 1:10 | Issues page: one approval card | Nothing changes until a person approves. The approval is tied to the exact file and change. |
+| 1:25 | Reply `approve` in the room | Same approval, from chat. |
+| 1:40 | Figma file and Canva design change live | Only colours, type and radii listed in the approval. |
+| 2:00 | Real GitHub pull request, never merged | Implementation opens a branch and PR; the default branch is untouched. |
+| 2:20 | QA re-reads everything independently | The agent that made the change does not mark its own work. QA reports; Markpath decides pass or fail from counts. |
+| 2:40 | Reviews page + Activity | Link vetting, PR checks, scheduled audits, full audit trail. |
+| 2:55 | Close | "Switch is the control room. Without it there is no coordination, no approvals in chat, no independent QA." |
+
+Honesty notes to say out loud: Slack and Telegram are documented but not run; Canva cannot change fonts; the Figma/Canva edits run as the account connected to the agents.

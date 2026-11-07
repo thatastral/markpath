@@ -1,5 +1,7 @@
 # Markpath
 
+> **Flip the Switch submission.** Four agents in a Switch room (Director, Design, Implementation, QA) detect off-brand values in GitHub, Figma and Canva, get a person's approval on the exact change (dashboard, link, or a reply in chat), correct it, and verify it independently. Demo script: [docs/demo-script.md](docs/demo-script.md). Submission notes: [docs/submission.md](docs/submission.md). Talking to the agents: [docs/talking-to-agents.md](docs/talking-to-agents.md). Slack/Telegram: [Slack](docs/setup-slack.md), [Telegram](docs/setup-telegram.md) (documented, not yet run live).
+
 Markpath is an agentic brand-operations control centre: it turns approved brand rules into an evidence-led **Detect → Coordinate → Correct → Verify** workflow across design and code.
 
 The Next.js dashboard owns approvals and the operational record. Switch Rooms is the collaboration layer for the Brand Director, Design Agent, Implementation Agent, and Brand QA—not a replacement database.
