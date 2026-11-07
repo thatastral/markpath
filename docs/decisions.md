@@ -32,3 +32,8 @@ The local Switch core service at `http://127.0.0.1:57888` returned `{"status":"o
 - Fixture token replacement targets specific declarations, not any text, so values like `14px` are untouched.
 - Switch shows "connected" only when the server is reachable and at least one agent message was recorded through `room-event`.
 - Node pinned to 24 (`engines`, `.nvmrc`).
+
+## 2026-11-07 Proactive posts and scheduled runs
+- Owner decision: **dashboard alerts only.** Markpath does not post into the chat room by itself, and no schedule wakes the agents. No webhook or notifier agent is added, so the Director's addressing is not loosened.
+- Consequence: scheduled work is limited to what the server can do alone (daily repository audit, pull request checks), and results appear on the Reviews page. Figma and Canva reviews stay on demand (`@director vet <link>`), because only an agent can read them.
+- Revisit only with an explicit decision to let one automation sender address the Director.
