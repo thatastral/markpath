@@ -9,6 +9,7 @@ import { whenText } from "@/lib/labels";
 import { Badge, bodyClass, buttonClass, cardClass, EmptyState, isHex, Notice, PageHeader, SectionHeading, Swatch } from "@/components/ui/primitives";
 import { CheckIcon, ChevronRight, SwatchIcon, UploadIcon } from "@/components/ui/icons";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FileDrop } from "@/components/ui/file-drop";
 import { approveVersion, extractFixture, uploadGuideline, uploadLogo } from "./actions";
 
 type PageProps = { searchParams: Promise<{ message?: string }> };
@@ -45,14 +46,14 @@ export default async function BrandProfilePage({ searchParams }: PageProps) {
       <SectionHeading description="Markpath reads the rules out of it for you to approve. Markdown files only here for now." id="add-heading" title="Add a guideline" />
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <form action={extractFixture.bind(null, brand.id)} className={`${cardClass} flex min-w-0 flex-col justify-between gap-4 p-5`}><div><p className="text-sm font-medium">Try the sample</p><p className="mt-0.5 text-sm text-muted">The Nexa guideline, ready to review.</p></div><div><SubmitButton className={buttonClass("primary")} pendingLabel="Loading…">Load sample</SubmitButton></div></form>
-        <form action={uploadGuideline.bind(null, brand.id)} className={`${cardClass} flex min-w-0 flex-col justify-between gap-4 border-dashed border-border-strong p-5`}><label className="grid gap-2 text-sm font-medium" htmlFor="guideline">Your guideline (.md file)<input accept=".md,text/markdown" className="w-full min-w-0" id="guideline" name="guideline" required type="file" /></label><div><SubmitButton className={buttonClass("secondary")} pendingLabel="Uploading…"><UploadIcon size={14} />Upload guideline</SubmitButton></div></form>
+        <form action={uploadGuideline.bind(null, brand.id)} className={`${cardClass} flex min-w-0 flex-col justify-between gap-4 p-5`}><div className="grid gap-2"><label className="text-sm font-medium" htmlFor="guideline">Your guideline (.md file)</label><FileDrop accept=".md,.markdown" hint="Markdown only, up to 10 MB." id="guideline" maxBytes={10_000_000} name="guideline" required /></div><div><SubmitButton className={buttonClass("secondary")} pendingLabel="Uploading…"><UploadIcon size={14} />Upload guideline</SubmitButton></div></form>
       </div>
     </section>
     <section aria-labelledby="logo-heading" className="mt-10">
       <SectionHeading description="The Design agent compares logos in your designs with this one and flags doubts for you. It never changes a logo." id="logo-heading" title="Reference logo" />
       <div className={`mt-4 ${cardClass} p-5`}>
-        {logo ? <p className="flex flex-wrap items-center gap-2 text-sm"><Badge tone="success">Current</Badge><strong className="font-medium">{logo.filename}</strong><span className="tabular-nums text-muted">uploaded {whenText(logo.created_at)}</span></p> : <p className="text-sm text-muted">No logo yet. PNG, JPG or WebP, up to 1 MB.</p>}
-        <form action={uploadLogo.bind(null, brand.id)} className="mt-4 flex flex-wrap items-center gap-3"><label className="sr-only" htmlFor="logo">Logo file</label><input accept="image/png,image/jpeg,image/webp" className="w-full min-w-0 sm:w-auto" id="logo" name="logo" type="file" /><SubmitButton className={buttonClass("secondary")} pendingLabel="Uploading…"><UploadIcon size={14} />Upload logo</SubmitButton></form>
+        {logo ? <p className="flex flex-wrap items-center gap-2 text-sm"><Badge tone="success">Current</Badge><strong className="font-medium">{logo.filename}</strong><span className="tabular-nums text-muted">uploaded {whenText(logo.created_at)}</span></p> : <p className="text-sm text-muted">No logo yet.</p>}
+        <form action={uploadLogo.bind(null, brand.id)} className="mt-4 grid gap-3 sm:max-w-md"><label className="sr-only" htmlFor="logo">Logo file</label><FileDrop accept="image/png,image/jpeg,image/webp" hint="PNG, JPG or WebP, up to 1 MB." id="logo" maxBytes={1_000_000} name="logo" required /><div><SubmitButton className={buttonClass("secondary")} pendingLabel="Uploading…"><UploadIcon size={14} />Upload logo</SubmitButton></div></form>
       </div>
     </section>
     </div>

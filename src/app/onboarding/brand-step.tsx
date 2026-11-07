@@ -2,6 +2,7 @@
 import { useActionState, useRef, useState, type KeyboardEvent } from "react";
 import { buttonClass, inputClass, Notice, Swatch } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FileDrop, UrlInput } from "@/components/ui/file-drop";
 import { confirmBrand, readGuideline, type ReadState } from "./actions";
 
 const sources = [
@@ -37,15 +38,14 @@ export function BrandStep() {
     </div>
     <form action={readAction} aria-labelledby={`source-${source}`} className="space-y-3" id="source-panel" key={source} role="tabpanel">
       <input type="hidden" name="kind" value={source === "file" ? "file" : "link"} />
-      {source === "file" ? <label className="block space-y-1.5">
-        <span className={label}>Brand guideline</span>
-        <input className={`${inputClass} file:mr-3 file:rounded-[5px] file:border-0 file:bg-hover file:px-2.5 file:py-1 file:text-sm file:font-medium`} type="file" name="file" accept=".pdf,.md,.markdown,.txt" required data-autofocus />
-        <span className={help}>PDF, Markdown or text, up to 10 MB.</span>
-      </label> : <label className="block space-y-1.5">
-        <span className={label}>{source === "website" ? "Website address" : "Figma or Canva link"}</span>
-        <input className={inputClass} type="url" inputMode="url" name="link" required autoComplete="url" placeholder={source === "website" ? "https://yourcompany.com" : "https://www.figma.com/design/…"} />
-        <span className={help}>{source === "website" ? "Markpath reads its colours and fonts. Nothing on your site changes." : "Markpath saves this design to check later. You add your rules on the next screen."}</span>
-      </label>}
+      {source === "file" ? <div className="space-y-1.5">
+        <label className={label} htmlFor="brand-file">Brand guideline</label>
+        <FileDrop accept=".pdf,.md,.markdown,.txt" autoFocus hint="PDF, Markdown or text, up to 10 MB." id="brand-file" maxBytes={10_000_000} name="file" required />
+      </div> : <div className="space-y-1.5">
+        <label className={label} htmlFor="brand-link">{source === "website" ? "Website address" : "Figma or Canva link"}</label>
+        <UrlInput site={source === "design" ? "design" : undefined} id="brand-link" key={source} name="link" placeholder={source === "website" ? "https://yourcompany.com" : "https://www.figma.com/design/…"} required />
+        <span className={`block ${help}`}>{source === "website" ? "Markpath reads its colours and fonts. Nothing on your site changes." : "Markpath saves this design to check later. You add your rules on the next screen."}</span>
+      </div>}
       {read.error && <Notice tone="danger" role="alert">{read.error}</Notice>}
       <div className="flex flex-wrap items-center gap-2">
         <SubmitButton className={buttonClass("primary")} pendingLabel="Reading…">{source === "file" ? "Read file" : source === "website" ? "Read website" : "Save link"}</SubmitButton>

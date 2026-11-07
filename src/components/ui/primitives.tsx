@@ -115,7 +115,7 @@ const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 export const isHex = (v: string | null | undefined): v is string => Boolean(v && HEX.test(v.trim()));
 
 export function Swatch({ value, className = "" }: { value: string; className?: string }) {
-  return <span aria-hidden className={`inline-block h-3 w-3 shrink-0 rounded-[3px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] ${className}`} style={{ backgroundColor: value.trim() }} />;
+  return <span aria-hidden className={`inline-block h-3 w-3 shrink-0 rounded-[3px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)] ${className}`} style={{ backgroundColor: value.trim() }} />;
 }
 
 /** A raw brand value (colour, font, radius) as a mono pill, with a swatch for colours. */

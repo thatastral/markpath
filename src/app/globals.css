@@ -2,8 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Markpath tokens: Attio-calm shell, Linear structure, AirOps cards. Light theme only, whatever the OS setting.
-   Source of truth: .claude/skills/markpath-design/SKILL.md */
+/* Markpath tokens: Attio-calm light, Linear-dark dark. Source of truth: .claude/skills/markpath-design/SKILL.md
+   Theme: <html data-theme="system|light|dark"> comes from the mp-theme cookie (set by ThemeSwitcher, read in
+   src/app/layout.tsx), so the server renders the right theme with no flash. :root is light; dark applies on
+   [data-theme=dark], and on [data-theme=system] when the OS prefers dark. */
 :root {
   color-scheme: light;
   --color-canvas: #f8f8f7;
@@ -55,6 +57,56 @@
   --motion-entry-duration: var(--duration-normal);
 }
 
+/* Dark (Linear-dark): near-black canvas, lifted surface, low-contrast hairlines. Text pairs meet WCAG AA. */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-canvas: #0d0e10;
+    --color-surface: #151619;
+    --color-subtle: #1a1b1e;
+    --color-hover: #1f2024;
+    --color-ink: #e6e6e8;
+    --color-muted: #9a9ca3;
+    --color-faint: #62656c;
+    --color-border: #232428;
+    --color-border-strong: #303136;
+    --color-brand: #8f97f2;
+    --color-brand-solid: #5e6ad2;
+    --color-brand-solid-hover: #6b76dc;
+    --color-brand-soft: #1e2036;
+    --color-success: #5ec58a;
+    --color-success-soft: #13221a;
+    --color-warning: #e5a84a;
+    --color-warning-soft: #261e11;
+    --color-danger: #f07a72;
+    --color-danger-soft: #2a1716;
+    --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.7), 0 0 0 1px var(--color-border);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+      color-scheme: dark;
+      --color-canvas: #0d0e10;
+      --color-surface: #151619;
+      --color-subtle: #1a1b1e;
+      --color-hover: #1f2024;
+      --color-ink: #e6e6e8;
+      --color-muted: #9a9ca3;
+      --color-faint: #62656c;
+      --color-border: #232428;
+      --color-border-strong: #303136;
+      --color-brand: #8f97f2;
+      --color-brand-solid: #5e6ad2;
+      --color-brand-solid-hover: #6b76dc;
+      --color-brand-soft: #1e2036;
+      --color-success: #5ec58a;
+      --color-success-soft: #13221a;
+      --color-warning: #e5a84a;
+      --color-warning-soft: #261e11;
+      --color-danger: #f07a72;
+      --color-danger-soft: #2a1716;
+      --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.7), 0 0 0 1px var(--color-border);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-rise: 0px;
@@ -65,7 +117,7 @@
 }
 
 * { box-sizing: border-box; }
-html { color-scheme: light; background: var(--color-canvas); -webkit-text-size-adjust: 100%; }
+html { background: var(--color-canvas); -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   color: var(--color-ink);
@@ -150,3 +202,14 @@ details[open] > summary .chev { transform: rotate(90deg); }
 @keyframes mp-spin { to { transform: rotate(360deg); } }
 .spin { animation: mp-spin calc(var(--duration-slow) * 2) var(--ease-none) infinite; /* progress loader, allowed to loop */ }
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: calc(var(--duration-xslow) * 4); } }
+
+/* Collapsed desktop sidebar (AppShell): icons only; labels stay for screen readers. */
+@media (min-width: 1024px) {
+  aside[data-collapsed="true"] .sb-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  aside[data-collapsed="true"] .sb-hide { display: none; }
+  aside[data-collapsed="true"] .sb-menu { width: 14rem; right: auto; }
+}
+
+/* File drop zone: the hidden file input's keyboard focus shows on the zone. */
+.dropzone:has(input:focus-visible) { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.dropzone { transition-property: background-color, border-color; transition-duration: var(--duration-xshort); transition-timing-function: var(--ease-out-quad); }

@@ -22,6 +22,7 @@ import { Badge, bodyClass, buttonClass, cardClass, Notice, PageHeader, Progress,
 import { SetupStatusBadge } from "@/components/setup-step";
 import { BrandIcon, ChevronRight, EyeCheckIcon, ProviderIcon } from "@/components/ui/icons";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { UrlInput } from "@/components/ui/file-drop";
 import { runRepoAuditAction, saveCanvaDesignAction, saveWatchPullsAction, saveChatHandle, saveFigmaFileAction, saveTeamPrefix } from "./actions";
 
 const label = "text-sm font-medium";
@@ -49,7 +50,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><SetupExternalLink href={CONNECTORS}>Connect Figma in Claude</SetupExternalLink>{figma && <SetupExternalLink href={figma.url}>Open the file</SetupExternalLink>}</div>
       <form action={saveFigmaFileAction} className={field}>
       <label className={label} htmlFor="figma-link">Figma file link</label>
-      <div className={row}><input className={`${setupUi.input} sm:flex-1`} defaultValue={figma?.url ?? ""} id="figma-link" name="link" placeholder="https://www.figma.com/design/…" inputMode="url" type="text" /><SubmitButton className={setupUi.primary} pendingLabel="Saving…">Save Figma link</SubmitButton></div>
+      <div className={row}><UrlInput className="w-full sm:w-auto sm:flex-1" defaultValue={figma?.url ?? ""} site="figma" id="figma-link" name="link" placeholder="https://www.figma.com/design/…" /><SubmitButton className={setupUi.primary} pendingLabel="Saving…">Save Figma link</SubmitButton></div>
       <span className={help}>{figma ? "To stop using this file, clear the link and save." : "Copy the file's address from your browser and paste it here."}</span>
       </form>
     </div>,
@@ -58,7 +59,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><SetupExternalLink href={CONNECTORS}>Connect Canva in Claude</SetupExternalLink>{canva && <SetupExternalLink href={canva.url}>Open the design</SetupExternalLink>}</div>
       <form action={saveCanvaDesignAction} className={field}>
       <label className={label} htmlFor="canva-link">Canva design link</label>
-      <div className={row}><input className={`${setupUi.input} sm:flex-1`} defaultValue={canva?.url ?? ""} id="canva-link" name="link" placeholder="https://www.canva.com/design/…" inputMode="url" type="text" /><SubmitButton className={setupUi.primary} pendingLabel="Saving…">Save Canva link</SubmitButton></div>
+      <div className={row}><UrlInput className="w-full sm:w-auto sm:flex-1" defaultValue={canva?.url ?? ""} site="canva" id="canva-link" name="link" placeholder="https://www.canva.com/design/…" /><SubmitButton className={setupUi.primary} pendingLabel="Saving…">Save Canva link</SubmitButton></div>
       <span className={help}>{canva ? "To stop using this design, clear the link and save." : "Copy the design's address from your browser and paste it here."}</span>
       </form>
     </div>,

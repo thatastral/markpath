@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { readTheme } from "@/components/theme/read-theme";
 import "./globals.css";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -11,10 +12,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f8f8f7",
-  colorScheme: "light"
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f8f8f7" }, { media: "(prefers-color-scheme: dark)", color: "#0d0e10" }],
+  colorScheme: "light dark"
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html className={`${sans.variable} ${mono.variable}`} lang="en"><body>{children}</body></html>;
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // The saved theme (cookie) is rendered on the server, so the first paint is already right: no flash.
+  const theme = await readTheme();
+  return <html className={`${sans.variable} ${mono.variable}`} data-theme={theme} lang="en" suppressHydrationWarning><body>{children}</body></html>;
 }

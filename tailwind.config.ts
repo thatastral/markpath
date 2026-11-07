@@ -10,6 +10,8 @@ const token = (name: string) => `color-mix(in srgb, var(--color-${name}) calc(<a
 
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  // dark: follows <html data-theme>: "dark" always, "system" when the OS prefers dark.
+  darkMode: ["variant", ['&:is([data-theme="dark"] *)', '@media (prefers-color-scheme: dark) { &:is([data-theme="system"] *) }']],
   // hover: utilities only apply on devices that can really hover (no sticky hover after a tap).
   future: { hoverOnlyWhenSupported: true },
   theme: {

@@ -29,6 +29,12 @@ export const EyeCheckIcon = (p: IconProps) => <svg {...base(p)}><circle cx="12" 
 export const ChevronDown = (p: IconProps) => <svg {...base(p)}><path d="M6 9l6 6 6-6" /></svg>;
 export const SelectorIcon = (p: IconProps) => <svg {...base(p)}><path d="M8 9l4-4 4 4M8 15l4 4 4-4" /></svg>;
 export const LogoutIcon = (p: IconProps) => <svg {...base(p)}><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 16l-4-4 4-4M6 12h10" /></svg>;
+export const SunIcon = (p: IconProps) => <svg {...base(p)}><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" /></svg>;
+export const MoonIcon = (p: IconProps) => <svg {...base(p)}><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z" /></svg>;
+export const MonitorIcon = (p: IconProps) => <svg {...base(p)}><rect height="12" rx="2" width="18" x="3" y="4" /><path d="M8 20h8M12 16v4" /></svg>;
+export const EyeIcon = (p: IconProps) => <svg {...base(p)}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" /></svg>;
+export const EyeOffIcon = (p: IconProps) => <svg {...base(p)}><path d="M10.6 5.6A9.6 9.6 0 0112 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 01-2.8 3.6M6.6 6.6C3.9 8.4 2.5 12 2.5 12S6 18.5 12 18.5c1.8 0 3.4-.6 4.7-1.4M9.9 9.9a3 3 0 004.2 4.2M3 3l18 18" /></svg>;
+export const SidebarIcon = (p: IconProps) => <svg {...base(p)}><rect height="16" rx="2.5" width="18" x="3" y="4" /><path d="M9 4v16" /></svg>;
 export const SpinnerIcon = (p: IconProps) => <svg {...base(p)} className={`spin ${p.className ?? ""}`}><path d="M12 3a9 9 0 109 9" /></svg>;
 
 /** Provider marks: simplified, recognisable monochrome logos in currentColor. */

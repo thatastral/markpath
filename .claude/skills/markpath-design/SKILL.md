@@ -20,24 +20,24 @@ Direction (owner-picked): **Attio-calm overall** (warm light-grey sidebar, flush
 
 ## 2. Tokens (`src/app/globals.css`, exposed in `tailwind.config.ts`)
 
-**Light theme only (owner decision).** Colours are CSS variables on `:root` with `color-scheme: light`; there are no dark overrides and no `dark:` variants, so every page renders the light tokens whatever the OS setting. Never hard-code Tailwind palette colours in components.
+**Light and dark themes.** Light is Attio-calm, dark is Linear-dark; every text pair meets WCAG AA in both. `<html data-theme="system|light|dark">` is rendered on the server from the `mp-theme` cookie (`src/app/layout.tsx`, `src/components/theme/`), so there is no flash. Tokens live on `:root` (light), `:root[data-theme="dark"]`, and `@media (prefers-color-scheme: dark) { :root[data-theme="system"] }`; each sets a matching `color-scheme`. Default is System (follows the OS). The `ThemeSwitcher` (System / Light / Dark radio group, arrow keys) sits in the sidebar account area and in the auth pages' footer. Tailwind `dark:` is wired to the same rule (`darkMode: ["variant", …]` in `tailwind.config.ts`); prefer tokens over `dark:`. Never hard-code Tailwind palette colours in components.
 
-| Token | Value | Use |
-|---|---|---|
-| `canvas` | #f8f8f7 (warm grey) | sidebar and auth background |
-| `surface` | #ffffff | the content panel, cards, menus |
-| `subtle` | #fafaf9 | list group bands, wells, code |
-| `hover` | #f0f0ee | row and nav hover, selected nav item |
-| `ink` | #1d1d1f | primary text |
-| `muted` | #6b6b6f | secondary text, meta (4.5:1 on surface and canvas) |
-| `faint` | #a3a3a0 | icons and unfilled severity bars only, never text |
-| `border` | #ececea | hairlines |
-| `border-strong` | #dededb | inputs, secondary buttons |
-| `brand` | #5e6ad2 | the single accent: links, focus ring, active marks |
-| `brand-solid` | #5e6ad2 | primary button fill (white text) |
-| `brand-soft` | #eff0fb | selected chip, needs-you step marker |
-| `success` / `warning` / `danger` | #1f7a45 / #9a5800 / #c0322a | status dots, icons, error text |
-| `*-soft` | very light tints | only for inline error and value-diff pills |
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `canvas` | #f8f8f7 (warm grey) | #0d0e10 | sidebar and auth background |
+| `surface` | #ffffff | #151619 | the content panel, cards, menus |
+| `subtle` | #fafaf9 | #1a1b1e | list group bands, wells, code |
+| `hover` | #f0f0ee | #1f2024 | row and nav hover, selected nav item |
+| `ink` | #1d1d1f | #e6e6e8 | primary text |
+| `muted` | #6b6b6f | #9a9ca3 | secondary text, meta (4.5:1 on surface and canvas) |
+| `faint` | #a3a3a0 | #62656c | icons and unfilled severity bars only, never text |
+| `border` | #ececea | #232428 | hairlines |
+| `border-strong` | #dededb | #303136 | inputs, secondary buttons |
+| `brand` | #5e6ad2 | #8f97f2 | the single accent: links, focus ring, active marks |
+| `brand-solid` | #5e6ad2 | #5e6ad2 | primary button fill (white text) |
+| `brand-soft` | #eff0fb | #1e2036 | selected chip, needs-you step marker |
+| `success` / `warning` / `danger` | #1f7a45 / #9a5800 / #c0322a | #5ec58a / #e5a84a / #f07a72 | status dots, icons, error text |
+| `*-soft` | very light tints | very dark tints | only for inline error and value-diff pills |
 
 - **Type:** Geist Sans for UI, Geist Mono for values (`next/font/google`, `src/app/layout.tsx`). The Tailwind scale is remapped to Linear's compact sizes: `text-2xs` 11, `text-xs` 12, `text-sm` **13 (UI default and body)**, `text-base` 14, `text-lg` 16, `text-xl` 18, `text-2xl` 22, `text-3xl` 26. Weights 400, 500 and 600 only. Headings use `tracking-tight`. Counts and times use `tabular-nums`. Inputs are 16px below `sm` so iOS does not zoom.
 - **Spacing:** 4/8px grid only. Page body `px-4 sm:px-6 lg:px-8`, `py-6`. Card padding 20 (`p-5`). Section gap 32 (`mt-8`).
@@ -71,6 +71,9 @@ Direction (owner-picked): **Attio-calm overall** (warm light-grey sidebar, flush
 - **Empty state (incident.io):** `EmptyState` renders `EmptyArt`, a small mock of three stacked rows with the icon on the front row, then a 13px semibold title, one muted line and up to two buttons (primary first). Filtered: "Clear filters". The 404 uses `EmptyArt` with a "404" label.
 - **Home / Overview (Attio home, Gumloop home):** header bar "Overview", then a centred max-w-3xl column: a 22px greeting ("Good afternoon, Ada."), a one-line stat strip of links ("20 open issues · 8 high priority · ..."), then sections in order: **Needs your decision** (rows linking to the approve page, or a quiet one-line card when empty), **Finish setting up** (only while setup is incomplete), **Recent activity**, **Your tools** (two-column small cards with a status dot).
 - **Integrations (Langdock grid, Attio connect):** "Your tools" card grid (icon tile, title, two-line why, status badge, Connect/Set up/Manage button jumping to the step) with filter chips All / Connected / Needs setup (`?show=`), then the full step-by-step stepper below. Statuses and step logic are unchanged.
+- **Sidebar collapse (desktop):** the Collapse button at the bottom of the sidebar (or `[`) shrinks it to a 56px icon rail; labels become screen-reader-only (`.sb-text`), extras hide (`.sb-hide`), nav items keep a `title` tooltip. Saved in the `mp-sidebar` cookie and rendered on the server. No animation (it is a frequent, keyboard-friendly action).
+- **Forms (Stripe/Linear/Vercel sign-in pattern):** `Field` in `src/components/ui/form-field.tsx`: visible label bound with `htmlFor`/`id`, hint below, inline error with an alert icon wired by `aria-describedby` + `aria-invalid`, checked on submit with focus moved to the first problem (no browser bubbles). Correct `autocomplete` (`name`, `email`, `organization`, `current-password`, `new-password`, `url`). `PasswordInput` has a show/hide eye button (`aria-label` Show/Hide password, `aria-pressed`, focus stays in the field) and a Caps Lock hint. Login has a right-aligned "Forgot password?" link. Every submit uses `SubmitButton` (pending label, no width change).
+- **Files and links:** `FileDrop` (`src/components/ui/file-drop.tsx`) is a dashed drop zone: drag a file in or click to browse, shows the chosen file name and size, checks type and size before upload; the real file input stays in the form. `UrlInput` accepts links with or without `https://`, checks the host (Figma, Canva) and shows the error inline.
 - **Swatch:** a rounded square with an inset hairline ring wherever a value matches `#rgb`/`#rrggbb`.
 - **Auth and single-purpose pages:** login and signup use `AuthFrame` (`src/components/auth-frame.tsx`): a centred 360px column on `canvas`, the logo above, a plain `surface` card with a hairline border, labels in 12px muted. No gradients. The 404 is the same centred column without a card. New workspace and the approve link page live inside the shell: header bar, then a narrow centred card column (max-w-md / max-w-2xl).
 
@@ -112,7 +115,7 @@ Animate only transform and opacity. No stagger on lists, no loops except the Git
 **Owner-picked (primary):**
 
 | App | Reference | What Markpath takes |
-|---|---|---|
+|---|---|---|---|
 | Attio | [home](https://mobbin.com/screens/4adb35f8-087c-4123-90f1-da4620dbe159) | greeting, calm sections, quiet empty states, "Getting started n/6" sidebar pill |
 | Gumloop | [home](https://mobbin.com/screens/48547ec2-ac98-42fd-abcb-9c5e8be241ac) | agent product home: recent activity + what's next, sidebar meter |
 | Langdock | [integrations flow](https://mobbin.com/flows/d7e174da-5154-4f88-ad29-c151a7a8284f) | card grid with Connect buttons, All / Connected / Needs setup chips, "Get started n% done" card |
@@ -124,7 +127,7 @@ Animate only transform and opacity. No stagger on lists, no loops except the Git
 The owner may swap these for a picked shortlist. Replace rows here and keep the "What Markpath takes" column honest.
 
 | App | Screen | What Markpath takes |
-|---|---|---|
+|---|---|---|---|
 | Linear | [issues, grouped backlog](https://mobbin.com/screens/fd1b4d88-f021-49a3-98af-4cd3a87e1d29) | sidebar on grey, inset white panel, group band with count, 36px rows |
 | Linear | [active issues](https://mobbin.com/screens/d4e0a8da-a387-49c7-8940-b64521bd3809) | hover row tint, right-aligned date and assignee |
 | Linear | [project issues by status](https://mobbin.com/screens/ef923b0e-9a40-4fdd-80f2-f3aafb4f36ce) | status circle icons on group bands |
@@ -148,4 +151,4 @@ The owner may swap these for a picked shortlist. Replace rows here and keep the 
 
 - Change presentation only. Keep server actions, form `name`s, hidden inputs, routes, aria attributes and `src/lib`/`src/server` untouched.
 - No new npm dependencies. Motion is CSS only.
-- Check every change with `npx tsc --noEmit`, at 320px and desktop, in the light theme (also with the OS set to dark: it must still render light).
+- Check every change with `npx tsc --noEmit`, at 320px and desktop, in light and dark (switcher and OS setting).

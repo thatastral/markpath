@@ -11,8 +11,9 @@ import { CopyRoomTemplate } from "@/components/copy-room-template";
 import { ChatApps } from "@/components/chat-apps";
 import { SetupCopyButton } from "@/components/setup-copy-button";
 import { SetupRefreshButton } from "@/components/setup-refresh-button";
-import { buttonClass, inputClass, Notice, Progress } from "@/components/ui/primitives";
+import { buttonClass, Notice, Progress } from "@/components/ui/primitives";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FileDrop, UrlInput } from "@/components/ui/file-drop";
 import { CheckIcon } from "@/components/ui/icons";
 import { BrandStep } from "./brand-step";
 import { StepFocus } from "./step-focus";
@@ -31,7 +32,6 @@ type StepId = (typeof steps)[number]["id"];
 
 const fieldLabel = "text-xs font-medium text-ink";
 const help = "block text-xs text-muted";
-const fileInput = `${inputClass} file:mr-3 file:rounded-[5px] file:border-0 file:bg-hover file:px-2.5 file:py-1 file:text-sm file:font-medium`;
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ step?: string; problem?: string }> }) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
@@ -57,7 +57,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const prefix = ctx?.teamPrefix ?? "markpath";
 
   return <div className="min-h-dvh bg-canvas">
-    <div aria-hidden className="fixed inset-0 bg-[rgb(15_15_20/0.04)]" />
+    <div aria-hidden className="fixed inset-0 bg-[rgb(15_15_20/0.04)] dark:bg-black/30" />
     <main className="relative mx-auto grid min-h-dvh w-full max-w-4xl place-items-center px-4 py-6 sm:py-10">
       <div role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-why" className="anim-rise grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card border border-border bg-surface shadow-pop md:grid-cols-[14rem_minmax(0,1fr)]">
         <nav aria-label="Setup steps" className="min-w-0 border-b border-border bg-canvas p-4 md:border-b-0 md:border-r">
@@ -86,10 +86,9 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
             {current === "brand" && (done.brand && !requested ? <Done text="Your brand rules are saved." next="logo" /> : <BrandStep />)}
 
             {current === "logo" && <form action={uploadOnboardingLogo} className="space-y-4">
-              <label className="block space-y-1.5"><span className={fieldLabel}>Logo file</span>
-                <input className={fileInput} type="file" name="logo" accept="image/png,image/jpeg,image/webp" data-autofocus />
-                <span className={help}>{done.logo ? "Your logo is saved. Choose another file to replace it." : "PNG, JPG or WebP, up to 1 MB."}</span>
-              </label>
+              <div className="space-y-1.5"><label className={fieldLabel} htmlFor="onb-logo">Logo file</label>
+                <FileDrop accept="image/png,image/jpeg,image/webp" autoFocus hint={done.logo ? "Your logo is saved. Add another to replace it." : "PNG, JPG or WebP, up to 1 MB."} id="onb-logo" maxBytes={1_000_000} name="logo" />
+              </div>
               <Actions skip={skip}><SubmitButton className={buttonClass("primary")} pendingLabel="Saving…">Save and continue</SubmitButton></Actions>
             </form>}
 
@@ -99,10 +98,10 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
             </div>}
 
             {current === "design" && <form action={saveDesignLinks} className="space-y-4">
-              <label className="block space-y-1.5"><span className={fieldLabel}>Figma file link</span>
-                <input className={inputClass} name="figma" type="url" inputMode="url" autoComplete="off" defaultValue={ctx?.figma?.url ?? ""} placeholder="https://www.figma.com/design/…" data-autofocus /></label>
-              <label className="block space-y-1.5"><span className={fieldLabel}>Canva design link</span>
-                <input className={inputClass} name="canva" type="url" inputMode="url" autoComplete="off" defaultValue={ctx?.canva?.url ?? ""} placeholder="https://www.canva.com/design/…" /></label>
+              <div className="space-y-1.5"><label className={fieldLabel} htmlFor="onb-figma">Figma file link</label>
+                <UrlInput autoFocus defaultValue={ctx?.figma?.url ?? ""} site="figma" id="onb-figma" name="figma" placeholder="https://www.figma.com/design/…" /></div>
+              <div className="space-y-1.5"><label className={fieldLabel} htmlFor="onb-canva">Canva design link</label>
+                <UrlInput defaultValue={ctx?.canva?.url ?? ""} site="canva" id="onb-canva" name="canva" placeholder="https://www.canva.com/design/…" /></div>
               <p className={help}>Add one or both. The Design agent edits them through your Figma and Canva accounts, so connect both once in <a className="font-medium text-brand hover:underline" href="https://claude.ai/settings/connectors" target="_blank" rel="noreferrer">Claude settings<span className="sr-only"> (opens in a new tab)</span></a> on the computer that runs your agents. In Canva it changes colours only, not fonts.</p>
               <Actions skip={skip}><SubmitButton className={buttonClass("primary")} pendingLabel="Saving…">Save and continue</SubmitButton></Actions>
             </form>}
