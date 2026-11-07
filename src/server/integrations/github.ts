@@ -22,6 +22,8 @@ export function getGithubConfig(brandId: string): GithubConfig | null {
   const s = getIntegrationSecret(brandId, "github"); if (!s) return null;
   return { token: s.secret, login: String(s.meta.login ?? ""), repo: s.meta.repo as string | undefined, defaultBranch: s.meta.defaultBranch as string | undefined };
 }
+export function setWatchPulls(brandId: string, on: boolean) { const s = getIntegrationSecret(brandId, "github"); if (s) updateIntegrationMeta(brandId, "github", { ...s.meta, watchPulls: on }); }
+export const watchesPulls = (brandId: string) => Boolean(getIntegrationSecret(brandId, "github")?.meta.watchPulls);
 export const isRealGithub = (brandId: string) => { const c = getGithubConfig(brandId); return Boolean(c?.repo); };
 
 function setIntegration(brandId: string, status: string, mode: string, account: string | null) {

@@ -18,7 +18,9 @@ export class GithubClient {
   createBranch(full: string, name: string, sha: string) { return this.call<unknown>("POST", `/repos/${full}/git/refs`, { ref: `refs/heads/${name}`, sha }); }
   putFile(full: string, path: string, input: { message: string; text: string; branch: string; sha?: string }) { return this.call<{ commit: { sha: string } }>("PUT", `/repos/${full}/contents/${path.split("/").map(encodeURIComponent).join("/")}`, { message: input.message, content: Buffer.from(input.text, "utf8").toString("base64"), branch: input.branch, ...(input.sha ? { sha: input.sha } : {}) }); }
   createPull(full: string, input: { title: string; head: string; base: string; body: string }) { return this.call<{ number: number; html_url: string }>("POST", `/repos/${full}/pulls`, input); }
-  pull(full: string, number: number) { return this.call<{ state: string; merged: boolean; head: { ref: string }; base: { ref: string } }>("GET", `/repos/${full}/pulls/${number}`); }
+  pull(full: string, number: number) { return this.call<{ state: string; merged: boolean; title: string; user?: { login: string }; head: { ref: string; sha: string }; base: { ref: string } }>("GET", `/repos/${full}/pulls/${number}`); }
+  listOpenPulls(full: string) { return this.call<Array<{ number: number; title: string; user?: { login: string }; head: { ref: string; sha: string }; base: { ref: string } }>>("GET", `/repos/${full}/pulls?state=open&per_page=30`); }
+  comment(full: string, number: number, body: string) { return this.call<{ id: number }>("POST", `/repos/${full}/issues/${number}/comments`, { body }); }
   pullFiles(full: string, number: number) { return this.call<Array<{ filename: string; patch?: string }>>("GET", `/repos/${full}/pulls/${number}/files?per_page=100`); }
   createRepo(name: string, description: string) { return this.call<{ full_name: string; default_branch: string }>("POST", "/user/repos", { name, description, private: true, auto_init: true }); }
 }

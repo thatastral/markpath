@@ -10,7 +10,9 @@ import { verifyFigmaFixture, verifyGithubFixture } from "@/server/qa/fixture-ver
 import { addTaskResource, createTask, finishVerification, recordActivity, requestApproval, transitionTask, updateTaskResource } from "@/server/tasks/service";
 import { executeGithubReal, isRealGithub, realGithubResourceId, scanGithubRepo, verifyGithubReal } from "@/server/integrations/github";
 import { figmaMcpConfig } from "@/server/integrations/figma";
-import { canvaMcpConfig } from "@/server/integrations/canva";
+import { canvaMcpConfig, parseCanvaDesignId } from "@/server/integrations/canva";
+import { parseFigmaFileKey } from "@/server/integrations/figma";
+import { brandValuesFor, parsePullUrl, pullReviewSummary, recordVet, reviewPull } from "@/server/integrations/vet";
 import { brandValuesFromSpec } from "@/server/brand/spec";
 import { playbook } from "./playbooks";
 import { agentDisplayName, type AgentPrincipal, type AgentRole } from "./auth";
@@ -223,4 +225,30 @@ export async function figmaScript(ctx: Ctx, name: "inspect" | "apply") {
   const body = await readFile(join(process.cwd(), "src", "server", "agents", "figma-scripts", `${name}.js`), "utf8");
   const config = name === "inspect" ? { legacy: values.legacy } : { from: values.legacy, to: values.expected };
   return { name, instructions: "Pass `code` verbatim as the `code` argument of the Figma MCP use_figma tool, with the fileKey of the file you were given. Do not edit it.", code: `const CONFIG = ${JSON.stringify(config)};\n${body}` };
+}
+
+/** Read-only review of a link someone pastes into the room. A review never edits anything and never creates an approval. */
+export async function vetLink(ctx: Ctx, input: { url: string }) {
+  requireRole(ctx.role, ["director"], "start a review");
+  const url = input.url.trim(); const values = brandValuesFor(ctx.brandId);
+  const pull = parsePullUrl(url);
+  if (pull) {
+    const review = await reviewPull(ctx.brandId, pull.repo, pull.number); const summary = pullReviewSummary(review);
+    recordVet(ctx.brandId, { kind: "pull request", target: `${pull.repo}#${pull.number}`, verdict: summary.verdict, summary: summary.summary, details: { findings: review.findings.slice(0, 30) }, agent: agentDisplayName[ctx.role] });
+    return { kind: "pull request", ...summary, author: review.author, findings: review.findings.slice(0, 20), next: "Post this review in the room, tagging the person who asked. Nothing was changed." };
+  }
+  if (/figma\.com\//i.test(url)) { const key = parseFigmaFileKey(url); if (!key) throw new AgentApiError("That does not look like a Figma design link.", 422); return { kind: "figma", fileKey: key, url, brand: values, next: "Ask the Design agent to review this Figma file read-only through the Figma MCP and report it with POST /api/agent/vet-report. No edits, no approval." }; }
+  if (/canva\.com\//i.test(url)) { const id = parseCanvaDesignId(url); if (!id) throw new AgentApiError("That does not look like a Canva design link.", 422); return { kind: "canva", designId: id, url, brand: values, next: "Ask the Design agent to review this Canva design read-only through the Canva MCP and report it with POST /api/agent/vet-report. No edits, no approval." }; }
+  throw new AgentApiError("I can review Figma design links, Canva design links and GitHub pull request links.", 422);
+}
+
+export function vetReport(ctx: Ctx, input: { kind: "figma" | "canva"; target: string; counts: Record<string, number>; items?: string[]; note?: string }) {
+  requireRole(ctx.role, ["design"], "report a design review");
+  const humanReview = input.counts.humanReview ?? 0;
+  const outdated = Object.entries(input.counts).filter(([k]) => k !== "humanReview").reduce((sum, [, n]) => sum + n, 0);
+  const verdict = outdated > 0 ? "needs_changes" : humanReview > 0 ? "needs_review" : "clean";
+  const label = input.kind === "canva" ? "Canva design" : "Figma file";
+  const summary = verdict === "clean" ? `${label} follows the brand: no outdated values found.` : `${label}: ${outdated} outdated value(s)${humanReview ? ` and ${humanReview} item(s) only a person can resolve` : ""}.`;
+  recordVet(ctx.brandId, { kind: input.kind, target: input.target, verdict, summary, details: { counts: input.counts, items: (input.items ?? []).slice(0, 30), note: input.note?.slice(0, 300) }, agent: agentDisplayName[ctx.role] });
+  return { verdict, summary };
 }

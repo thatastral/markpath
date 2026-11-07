@@ -93,6 +93,16 @@ export function initializeSchema(db: Database.Database) {
       secret_enc TEXT NOT NULL, meta TEXT NOT NULL DEFAULT '{}', updated_at TEXT NOT NULL,
       PRIMARY KEY (brand_id, provider)
     );
+    CREATE TABLE IF NOT EXISTS vet_reports (
+      id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL, target TEXT NOT NULL, verdict TEXT NOT NULL, summary TEXT NOT NULL,
+      details TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS pr_checks (
+      brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE, repo TEXT NOT NULL, number INTEGER NOT NULL, head_sha TEXT NOT NULL,
+      findings INTEGER NOT NULL, commented INTEGER NOT NULL DEFAULT 0, checked_at TEXT NOT NULL, PRIMARY KEY (brand_id, repo, number, head_sha)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vet_reports_brand ON vet_reports(brand_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_api_tokens_brand ON api_tokens(brand_id, role);
     CREATE INDEX IF NOT EXISTS idx_memberships_brand ON memberships(brand_id);
     CREATE INDEX IF NOT EXISTS idx_resources_brand ON resources(brand_id);
