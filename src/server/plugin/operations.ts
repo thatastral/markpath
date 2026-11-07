@@ -14,7 +14,7 @@ export class PluginApiError extends Error { constructor(message: string, readonl
 export const PLUGIN_OPERATION = "apply_in_figma_plugin";
 export const CANVA_OPERATION = "apply_in_canva_mcp";
 const providerOf = (operation: string) => (operation === CANVA_OPERATION ? "canva" : "figma");
-const actor = "Figma plugin";
+const actor = "Design Agent";
 
 /** Returns the workspace a plugin token belongs to, or null. The env token is a single-workspace developer fallback. */
 export function pluginPrincipal(header: string | null, allow: string[] = ["plugin", "design"]): { brandId: string } | null {

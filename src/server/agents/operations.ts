@@ -62,7 +62,7 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   if (!githubWork && !figmaFixtureWork && !designConfigured) return { reused: false, nothingToFix: true, message: "No outdated brand values were found, so there is nothing to approve or fix." };
   const owner = db().prepare("SELECT user_id FROM memberships WHERE brand_id = ? AND role = 'owner' LIMIT 1").get(brand.id) as { user_id: string } | undefined;
   const name = agentDisplayName[role];
-  const { task } = createTask({ brandId: brand.id, initiatedBy: owner?.user_id ?? "", type: "brand_correction", description: `Correct ${brand.name} brand values in ${real ? "the connected GitHub repository" : "the fixture repository"} and design`, idempotencyKey: `agent-audit-${brand.id}-${Date.now()}`, agentName: name });
+  const { task } = createTask({ brandId: brand.id, initiatedBy: owner?.user_id ?? "", type: "brand_correction", description: `Fix ${brand.name} brand values in ${taskParts(real, githubWork, figmaFixtureWork, Boolean(figmaMcp), Boolean(canvaMcp))}`, idempotencyKey: `agent-audit-${brand.id}-${Date.now()}`, agentName: name });
   if (githubWork) addTaskResource(task.id, resources.github); if (figmaFixtureWork && resources.figma) addTaskResource(task.id, resources.figma);
   transitionTask(task.id, "ASSESSING", name); transitionTask(task.id, "AUDITING", name);
   db().transaction(() => { replaceAuditFindings(brand.id, resources.github, githubFindings); if (resources.figma) replaceAuditFindings(brand.id, resources.figma, figmaFindings); })();
@@ -303,4 +303,9 @@ export function overview(ctx: Ctx) {
   const reviews = db().prepare("SELECT kind, target, verdict, summary FROM vet_reports WHERE brand_id = ? ORDER BY created_at DESC LIMIT 5").all(ctx.brandId);
   const connections = db().prepare("SELECT provider, connection_status AS status, mode FROM integrations WHERE brand_id = ?").all(ctx.brandId);
   return { brand: brand.name, teamPrefix: teamPrefixFor(ctx.brandId), openIssues: counts, issues, waitingForApproval: pendingTasks({ ...ctx, role: "director" }).pending, recentTasks: tasks, recentReviews: reviews, connections, dashboard: "Issues and approvals, Reviews and Agent activity pages on the Markpath dashboard hold the full detail." };
+}
+
+function taskParts(real: boolean, github: boolean, figmaSample: boolean, figma: boolean, canva: boolean) {
+  const parts = [github && (real ? "your GitHub repository" : "the sample repository"), figmaSample && "the sample Figma file", figma && "your Figma file", canva && "your Canva design"].filter(Boolean) as string[];
+  return parts.length === 0 ? "your designs" : parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

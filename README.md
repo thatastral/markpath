@@ -58,7 +58,7 @@ See [docs/setup.md](docs/setup.md), [docs/demo-script.md](docs/demo-script.md), 
 
 ## Agent-driven workflow (Switch is the control path)
 
-The four agents in the Switch room drive the workflow by calling Markpath's authenticated API. Each agent has its own token (`npm run agents:tokens` writes them to `.env.local` and `~/.markpath/agent-token-<role>`), so the audit trail names the real actor and roles are enforced:
+The four agents in the Switch room drive the workflow by calling Markpath's authenticated API. Each agent has its own key, created per workspace and stored hashed, so the audit trail names the real actor and roles are enforced:
 
 | Route | Who may call it | What it does |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ The four agents in the Switch room drive the workflow by calling Markpath's auth
 
 Agents cannot approve. A human approves each operation in the dashboard (Issues & approvals). An approval is single use.
 
-Run it: `npm run demo:reset:agents`, `npm run agents:tokens`, `npm run dev`, create the Switch room from the template, then message `@markpath-director`. The fixture-only `npm run demo:reset` + `npm run demo:complete` path remains as a fallback that does not need Switch.
+Run it: `npm run demo:reset:agents`, `npm run dev`, then on the **Integrations** page click **Copy chat-room template** and paste it into Switch Console to create the room (the agents' keys are inside it), and message the Director, for example `@mp-director fix the issues`. The fixture-only `npm run demo:reset` + `npm run demo:complete` path remains as a fallback that does not need Switch.
 
 ## Figma plugin
 

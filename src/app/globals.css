@@ -9,3 +9,10 @@ html { background: var(--color-canvas); }
 body { margin: 0; color: var(--color-ink); background: var(--color-canvas); font-family: Arial, sans-serif; }
 button, input { font: inherit; }
 a { color: inherit; }
+
+/* Long values (links, ids, colours) wrap instead of forcing sideways scrolling at 320px. */
+main { overflow-wrap: anywhere; }
+main article, main section, main li { min-width: 0; }
+button, [type="submit"] { min-height: 2rem; }
+input[type="checkbox"] { width: 1rem; height: 1rem; }
+#content:focus { outline: none; }

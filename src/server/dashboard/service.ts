@@ -19,7 +19,7 @@ export type FindingRow = {
 
 export type ApprovalRow = {
   id: string; decision: string; approved_action: string; created_at: string;
-  task_id: string; task_description: string; resource_name: string;
+  task_id: string; task_description: string; resource_name: string; resource_ref: string | null; decision_channel: string | null;
 };
 
 export type ActivityRow = {
@@ -48,12 +48,13 @@ export function getIntegrations(db: Database.Database, brandId: string) {
   return db.prepare("SELECT provider, connection_status, mode, last_checked_at FROM integrations WHERE brand_id = ? ORDER BY provider").all(brandId) as IntegrationRow[];
 }
 
-export function getFindings(db: Database.Database, brandId: string, filters: { provider?: string; severity?: string; status?: string } = {}) {
+export function getFindings(db: Database.Database, brandId: string, filters: { provider?: string; severity?: string; status?: string; classification?: string } = {}) {
   const clauses = ["f.brand_id = ?"];
   const values: string[] = [brandId];
   if (filters.provider) { clauses.push("i.provider = ?"); values.push(filters.provider); }
   if (filters.severity) { clauses.push("f.severity = ?"); values.push(filters.severity); }
   if (filters.status) { clauses.push("f.status = ?"); values.push(filters.status); }
+  if (filters.classification) { clauses.push("f.classification = ?"); values.push(filters.classification); }
   return db.prepare(`SELECT f.id, i.provider, r.resource_name, r.resource_url, f.rule_id, f.detected_value, f.expected_value,
     f.severity, f.confidence, f.evidence, f.recommended_action, f.classification, f.status, f.created_at
     FROM findings f JOIN resources r ON r.id = f.resource_id LEFT JOIN integrations i ON i.id = r.integration_id
@@ -61,7 +62,7 @@ export function getFindings(db: Database.Database, brandId: string, filters: { p
 }
 
 export function getApprovals(db: Database.Database, brandId: string) {
-  return db.prepare(`SELECT a.id, a.decision, a.approved_action, a.created_at, t.id AS task_id, t.description AS task_description, r.resource_name
+  return db.prepare(`SELECT a.id, a.decision, a.approved_action, a.created_at, a.decision_channel, t.id AS task_id, t.description AS task_description, r.resource_name, r.external_resource_id AS resource_ref
     FROM approvals a JOIN tasks t ON t.id = a.task_id JOIN resources r ON r.id = a.resource_id
     WHERE t.brand_id = ? ORDER BY CASE a.decision WHEN 'pending' THEN 0 ELSE 1 END, a.created_at DESC`).all(brandId) as ApprovalRow[];
 }
@@ -95,12 +96,13 @@ export function decideTaskApprovals(db: Database.Database, input: { taskId: stri
   return pending.length;
 }
 
-export type TaskApprovalView = { task: { id: string; description: string; status: string; brand_id: string }; isOwner: boolean; items: Array<{ id: string; decision: string; resource_name: string; findings: Array<{ rule_id: string; detected_value: string | null; expected_value: string | null; severity: string }> }> };
+export type TaskApprovalView = { task: { id: string; description: string; status: string; brand_id: string }; isOwner: boolean; items: Array<{ id: string; decision: string; resource_name: string; resource_ref: string | null; approved_action: string; needsPerson: number }> };
 export function getTaskApprovalView(db: Database.Database, taskId: string, userId: string): TaskApprovalView | null {
   const task = db.prepare("SELECT t.id, t.description, t.status, t.brand_id FROM tasks t JOIN memberships m ON m.brand_id = t.brand_id AND m.user_id = ? WHERE t.id = ?").get(userId, taskId) as TaskApprovalView["task"] | undefined;
   if (!task) return null;
   const role = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(userId, task.brand_id) as { role: string } | undefined;
-  const approvals = db.prepare("SELECT a.id, a.decision, a.resource_id, r.resource_name FROM approvals a JOIN resources r ON r.id = a.resource_id WHERE a.task_id = ? ORDER BY r.resource_name").all(taskId) as Array<{ id: string; decision: string; resource_id: string; resource_name: string }>;
-  const items = approvals.map((a) => ({ id: a.id, decision: a.decision, resource_name: a.resource_name, findings: db.prepare("SELECT rule_id, detected_value, expected_value, severity FROM findings WHERE resource_id = ? AND status = 'open' ORDER BY severity").all(a.resource_id) as TaskApprovalView["items"][number]["findings"] }));
+  const approvals = db.prepare("SELECT a.id, a.decision, a.resource_id, a.approved_action, r.resource_name, r.external_resource_id AS resource_ref FROM approvals a JOIN resources r ON r.id = a.resource_id WHERE a.task_id = ? ORDER BY r.resource_name").all(taskId) as Array<{ id: string; decision: string; resource_id: string; approved_action: string; resource_name: string; resource_ref: string | null }>;
+  // Items only a person can resolve (contrast, tone, logo, placeholders) are not part of what is being approved; they are counted so the page can say so.
+  const items = approvals.map((a) => ({ id: a.id, decision: a.decision, resource_name: a.resource_name, resource_ref: a.resource_ref, approved_action: a.approved_action, needsPerson: (db.prepare("SELECT COUNT(*) AS n FROM findings WHERE resource_id = ? AND status = 'open' AND classification = 'needs_review'").get(a.resource_id) as { n: number }).n }));
   return { task, isOwner: role?.role === "owner", items };
 }

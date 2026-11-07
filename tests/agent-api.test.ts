@@ -95,7 +95,7 @@ describe("approve from chat link", () => {
     const { user, brand, db } = await stage();
     const audit = await runAudit({ role: "director", brandId: brand.id }, {}) as { taskId: string };
     const view = getTaskApprovalView(db, audit.taskId, user.id)!;
-    expect(view.isOwner).toBe(true); expect(view.items).toHaveLength(2); expect(view.items.every((i) => i.findings.length > 0)).toBe(true);
+    expect(view.isOwner).toBe(true); expect(view.items).toHaveLength(2); expect(view.items.every((i) => i.approved_action.length > 0)).toBe(true);
     expect(getTaskApprovalView(db, audit.taskId, "someone-else")).toBeNull();
     expect(decideTaskApprovals(db, { taskId: audit.taskId, userId: user.id, decision: "approved" })).toBe(2);
     expect(getTaskApprovalView(db, audit.taskId, user.id)!.items.every((i) => i.decision === "approved")).toBe(true);
