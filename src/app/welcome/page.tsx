@@ -86,6 +86,7 @@ export default function WelcomePage() {
 
       <section aria-labelledby="switch-heading" className="mx-auto max-w-5xl px-4 pb-24 sm:px-6" id="switch">
         <div className="relative" data-reveal>
+          <MascotCloud variant="panel" />
           <div className="grid overflow-hidden rounded-card border border-border bg-surface md:grid-cols-2">
             <div className="p-7 sm:p-10">
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted">Built on Switch</p>
