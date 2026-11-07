@@ -4,7 +4,8 @@ import { initializeSchema } from "@/server/db/schema";
 import { brandValuesFromSpec } from "@/server/brand/spec";
 import { findBrandChanges } from "@/server/audits/brand-replace";
 import { recordActivity } from "@/server/tasks/service";
-import { getGithubConfig, scanGithubRepo, schedulesAudits } from "./github";
+import { getGithubConfig, realGithubResourceId, scanGithubRepo, schedulesAudits } from "./github";
+import { replaceAuditFindings } from "@/server/audits/design-findings";
 import { GithubClient, GithubError, type Fetch } from "./github-client";
 
 function db() { const database = getDatabase(); initializeSchema(database); return database; }
@@ -66,6 +67,7 @@ export async function checkNewPullRequests(brandId: string, fetchImpl?: Fetch) {
 export async function runRepoAudit(brandId: string, fetchImpl?: Fetch, source: "scheduled" | "manual" = "manual") {
   const c = getGithubConfig(brandId); if (!c?.repo) throw new GithubError("No GitHub repository is selected.", 409);
   const { findings, files } = await scanGithubRepo(brandId, fetchImpl); const n = findings.length;
+  const resourceId = realGithubResourceId(brandId); if (resourceId) replaceAuditFindings(brandId, resourceId, findings); // itemised on the Issues page
   recordVet(brandId, { kind: "repository audit", target: c.repo, verdict: n === 0 ? "clean" : "needs_changes", summary: n === 0 ? `${c.repo}: no outdated brand values (${source} audit).` : `${c.repo}: ${n} outdated brand value(s) in ${files.length} file(s) (${source} audit).`, details: { findings: findings.slice(0, 30).map((f) => ({ location: f.location, rule: f.ruleId, detected: f.detected, expected: f.expected })), source }, agent: source === "scheduled" ? "Markpath scheduled audit" : "Markpath audit" });
   return { findings: n, files: files.length };
 }

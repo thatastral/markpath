@@ -47,6 +47,8 @@ describe("Figma through the MCP", () => {
     expect(report.verified).toBe(true);
     const done = await verifyTask(as("qa"), { taskId: audit.taskId });
     expect(done.status).toBe("COMPLETED");
+    expect((db.prepare("SELECT COUNT(*) AS n FROM findings WHERE status = 'open' AND classification = 'confirmed'").get() as { n: number }).n).toBe(0); // verified fixes leave the open list
+    expect((db.prepare("SELECT COUNT(*) AS n FROM findings WHERE status = 'resolved'").get() as { n: number }).n).toBeGreaterThan(0);
   }, 40_000);
 
   it("handles a Canva design alongside a Figma file, and keeps placeholder text as human review", async () => {

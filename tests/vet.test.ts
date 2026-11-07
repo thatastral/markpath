@@ -130,3 +130,18 @@ describe("wider rules", () => {
     expect(() => contrastCheck({ role: "implementation", brandId: brand.id }, { pairs: [] })).toThrow("not allowed");
   });
 });
+
+import { getFindings } from "../src/server/dashboard/service";
+describe("issues on the dashboard", () => {
+  it("itemises design review findings on the Issues page and replaces them on the next check", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "markpath-issues-")); dirs.push(dir); process.env.MARKPATH_DB_PATH = join(dir, "db.sqlite");
+    const { brand } = await seedDatabase(process.env.MARKPATH_DB_PATH); const db = getDatabase(process.env.MARKPATH_DB_PATH);
+    const design = { role: "design" as const, brandId: brand.id };
+    vetReport(design, { kind: "figma", target: "https://www.figma.com/design/k", fileName: "Nexa design", counts: { colour: 2, contrast: 1 }, findings: [{ nodeName: "Orb", property: "colour", detected: "#164B9B", expected: "#2457F5" }, { nodeName: "Logo", property: "colour", detected: "#164B9B", expected: "#2457F5" }, { nodeName: "Card copy", property: "contrast", detected: "2.6:1 (#98A2B3 on #FFFFFF)", expected: "at least 4.5:1" }] });
+    let issues = getFindings(db, brand.id);
+    expect(issues).toHaveLength(3); expect(issues.map((i) => i.classification).sort()).toEqual(["confirmed", "confirmed", "needs_review"]);
+    expect(issues.find((i) => i.rule_id === "text-contrast")?.recommended_action).toContain("person");
+    vetReport(design, { kind: "figma", target: "https://www.figma.com/design/k", fileName: "Nexa design", counts: { colour: 1 }, findings: [{ nodeName: "Orb", property: "colour", detected: "#164B9B", expected: "#2457F5" }] });
+    issues = getFindings(db, brand.id); expect(issues).toHaveLength(1); // replaced, not piled up
+  });
+});

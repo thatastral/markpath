@@ -7,6 +7,7 @@ import { verifyToken } from "@/server/tokens/service";
 import { figmaMcpConfig } from "@/server/integrations/figma";
 import { canvaMcpConfig } from "@/server/integrations/canva";
 import { brandJudgementRules, brandValuesFromSpec } from "@/server/brand/spec";
+import { ensureDesignResource, replaceDesignFindings } from "@/server/audits/design-findings";
 import { consumeApproval, createTask, addTaskResource, recordActivity, requestApproval, transitionTask } from "@/server/tasks/service";
 
 export class PluginApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
@@ -40,10 +41,11 @@ export function pluginSpec(brandId: string) {
   return { brand: b.name, version: row.version, figmaMcp: figmaMcpConfig(b.id), canvaMcp: canvaMcpConfig(b.id), expected: values.expected, legacy: values.legacy, ...brandJudgementRules(row.specification), logoUploaded: Boolean(db().prepare("SELECT 1 FROM brand_assets WHERE brand_id = ? AND kind = 'logo'").get(b.id)) };
 }
 
-const findingsBody = z.object({ provider: z.enum(["figma", "canva"]).default("figma"), fileName: z.string().max(200), findings: z.array(z.object({ nodeName: z.string().max(200), property: z.string().max(60), detected: z.string().max(60), expected: z.string().max(60) })).max(500) });
+const findingsBody = z.object({ provider: z.enum(["figma", "canva"]).default("figma"), fileName: z.string().max(200), findings: z.array(z.object({ nodeName: z.string().max(200), property: z.string().max(60), detected: z.string().max(120), expected: z.string().max(160), evidence: z.string().max(300).optional() })).max(500) });
 export function recordPluginFindings(brandId: string, input: unknown) {
   const body = findingsBody.parse(input);
   db().prepare("UPDATE integrations SET connection_status = 'connected', last_checked_at = ? WHERE brand_id = ? AND provider = ? AND mode = 'mcp'").run(new Date().toISOString(), brandId, body.provider);
+  replaceDesignFindings(brandId, ensureDesignResource(brandId, body.provider, body.fileName), body.findings); // so every issue is itemised on the Issues page
   recordActivity({ brandId: brand(brandId).id, agentName: actor, activityType: "plugin_inspection", status: `${body.findings.length} outdated value(s) in "${body.fileName}"` });
   return { recorded: body.findings.length };
 }
@@ -52,11 +54,8 @@ const requestBody = z.object({ provider: z.enum(["figma", "canva"]).default("fig
 export function requestPluginApproval(brandId: string, input: unknown) {
   const body = requestBody.parse(input); const b = brand(brandId);
   const owner = db().prepare("SELECT user_id FROM memberships WHERE brand_id = ? AND role = 'owner' LIMIT 1").get(b.id) as { user_id: string } | undefined;
-  const integration = db().prepare("SELECT id FROM integrations WHERE brand_id = ? AND provider = ?").get(b.id, body.provider) as { id: string } | undefined;
   const isCanva = body.provider === "canva"; const operation = isCanva ? CANVA_OPERATION : PLUGIN_OPERATION;
-  const externalId = `${isCanva ? "canva-mcp" : "figma-plugin"}:${body.fileName}`;
-  let resource = db().prepare("SELECT id FROM resources WHERE brand_id = ? AND external_resource_id = ?").get(b.id, externalId) as { id: string } | undefined;
-  if (!resource) { resource = { id: randomUUID() }; db().prepare(`INSERT INTO resources (id, brand_id, integration_id, resource_type, external_resource_id, resource_name, resource_url, last_inspected_at, status, created_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 'audited', ?)`).run(resource.id, b.id, integration?.id ?? null, isCanva ? "canva_design" : "figma_file", externalId, body.fileName, new Date().toISOString(), new Date().toISOString()); }
+  const resource = { id: ensureDesignResource(b.id, body.provider, body.fileName) };
   let task = db().prepare("SELECT id, status FROM tasks WHERE brand_id = ? AND status IN ('PLAN_READY','AWAITING_APPROVAL') ORDER BY created_at DESC LIMIT 1").get(b.id) as { id: string; status: string } | undefined;
   if (!task) {
     const created = createTask({ brandId: b.id, initiatedBy: owner?.user_id ?? "", type: isCanva ? "canva_correction" : "figma_plugin_correction", description: `Apply approved brand values in ${isCanva ? "Canva design" : "Figma file"} "${body.fileName}"`, idempotencyKey: `plugin-${resource.id}-${Date.now()}`, agentName: actor }).task;

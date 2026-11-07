@@ -15,6 +15,7 @@ import { parseFigmaFileKey } from "@/server/integrations/figma";
 import { brandValuesFor, parsePullUrl, pullReviewSummary, recordVet, reviewPull } from "@/server/integrations/vet";
 import { brandJudgementRules, brandValuesFromSpec } from "@/server/brand/spec";
 import { checkContrast } from "@/server/audits/contrast";
+import { ensureDesignResource, replaceAuditFindings, replaceDesignFindings, resolveTaskFindings } from "@/server/audits/design-findings";
 import { playbook } from "./playbooks";
 import { agentDisplayName, type AgentPrincipal, type AgentRole } from "./auth";
 
@@ -62,7 +63,7 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   const { task } = createTask({ brandId: brand.id, initiatedBy: owner?.user_id ?? "", type: "brand_correction", description: `Correct ${brand.name} brand values in ${real ? "the connected GitHub repository" : "the fixture repository"} and design`, idempotencyKey: `agent-audit-${brand.id}-${Date.now()}`, agentName: name });
   addTaskResource(task.id, resources.github); if (resources.figma) addTaskResource(task.id, resources.figma);
   transitionTask(task.id, "ASSESSING", name); transitionTask(task.id, "AUDITING", name);
-  db().transaction(() => { persistFindings(brand.id, resources.github, githubFindings); if (resources.figma) persistFindings(brand.id, resources.figma, figmaFindings); })();
+  db().transaction(() => { replaceAuditFindings(brand.id, resources.github, githubFindings); if (resources.figma) replaceAuditFindings(brand.id, resources.figma, figmaFindings); })();
   transitionTask(task.id, "PLAN_READY", name);
   requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
   // With a Figma file audited through the MCP, the task waits in PLAN_READY until the Design agent adds the Figma approval (or the Director proceeds without it).
@@ -129,6 +130,7 @@ export async function verifyTask(ctx: Ctx, input: { taskId: string }) {
   updateTaskResource({ taskId: task.id, resourceId: github.resource_id, status: githubReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: githubReport, error: githubReport.verified ? undefined : "GitHub QA failed.", actor: "Brand QA" });
   if (!isFigmaFile(figma.target)) updateTaskResource({ taskId: task.id, resourceId: figma.resource_id, status: figmaReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: figmaReport, error: figmaReport.verified ? undefined : "Figma fixture QA failed.", actor: "Brand QA" });
   const finished = finishVerification(task.id);
+  if (finished.status === "COMPLETED") resolveTaskFindings(task.id); // verified fixes leave the open list
   return { status: finished.status, github: githubReport, figma: figmaReport, humanFollowUp: realPull ? `Review and merge the pull request yourself: ${githubEvidence.pullRequest.url}` : "Fixture only: there is no real pull request to merge." };
 }
 
@@ -244,7 +246,7 @@ export async function vetLink(ctx: Ctx, input: { url: string }) {
   throw new AgentApiError("I can review Figma design links, Canva design links and GitHub pull request links.", 422);
 }
 
-export function vetReport(ctx: Ctx, input: { kind: "figma" | "canva"; target: string; counts: Record<string, number>; items?: string[]; note?: string }) {
+export function vetReport(ctx: Ctx, input: { kind: "figma" | "canva"; target: string; fileName?: string; counts: Record<string, number>; items?: string[]; findings?: Array<{ nodeName: string; property: string; detected: string; expected: string; evidence?: string }>; note?: string }) {
   requireRole(ctx.role, ["design"], "report a design review");
   const needsPerson = new Set(["humanReview", "contrast", "logo", "voice"]);
   const humanReview = Object.entries(input.counts).filter(([k]) => needsPerson.has(k)).reduce((sum, [, n]) => sum + n, 0);
@@ -252,7 +254,8 @@ export function vetReport(ctx: Ctx, input: { kind: "figma" | "canva"; target: st
   const verdict = outdated > 0 ? "needs_changes" : humanReview > 0 ? "needs_review" : "clean";
   const label = input.kind === "canva" ? "Canva design" : "Figma file";
   const summary = verdict === "clean" ? `${label} follows the brand: no outdated values found.` : `${label}: ${outdated} outdated value(s)${humanReview ? ` and ${humanReview} item(s) only a person can resolve` : ""}.`;
-  recordVet(ctx.brandId, { kind: input.kind, target: input.target, verdict, summary, details: { counts: input.counts, items: (input.items ?? []).slice(0, 30), note: input.note?.slice(0, 300) }, agent: agentDisplayName[ctx.role] });
+  if (input.findings) replaceDesignFindings(ctx.brandId, ensureDesignResource(ctx.brandId, input.kind, input.fileName ?? input.target.slice(0, 120), input.target), input.findings); // itemised on the Issues page
+  recordVet(ctx.brandId, { kind: input.kind, target: input.target, verdict, summary, details: { counts: input.counts, items: (input.items ?? []).slice(0, 30), findings: (input.findings ?? []).slice(0, 30), note: input.note?.slice(0, 300) }, agent: agentDisplayName[ctx.role] });
   return { verdict, summary };
 }
 
