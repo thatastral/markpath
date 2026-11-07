@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/main-nav";
 import { buttonClass } from "@/components/ui/primitives";
+import { Mascot, type MascotKind } from "@/components/mascot";
 
 export const metadata = { title: "Markpath · Brand operations, run by agents", description: "Markpath finds off-brand colours, fonts and corners in your code, Figma and Canva, asks you to approve the exact change, fixes it and checks the result. Agents work in a Switch chat room." };
 
@@ -63,8 +64,8 @@ export default function WelcomePage() {
             <ul className="mt-6 grid gap-2.5 text-sm">{["Real Figma and Canva edits through official connectors", "Real GitHub pull requests, never merged for you", "Paste any link and ask “is this on brand?”", "New pull requests checked automatically"].map((t) => <li className="flex gap-2.5" key={t}><span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />{t}</li>)}</ul>
           </div>
           <div className="grid content-center gap-2.5 border-t border-border bg-canvas p-8 sm:p-10 md:border-l md:border-t-0">
-            {[["Brand Director", "Plans the work and asks you to approve"], ["Design agent", "Fixes Figma and Canva"], ["Implementation agent", "Opens the GitHub pull request"], ["Brand QA", "Checks every fix on its own"]].map(([name, job]) => <div className="flex items-center gap-3 rounded-panel border border-border bg-surface px-4 py-3" key={name}>
-              <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-surface">{name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
+            {([["director", "Brand Director", "Plans the work and asks you to approve"], ["design", "Design agent", "Fixes Figma and Canva"], ["implementation", "Implementation agent", "Opens the GitHub pull request"], ["qa", "Brand QA", "Checks every fix on its own"]] as Array<[MascotKind, string, string]>).map(([kind, name, job], i) => <div className={`flex items-center gap-3 rounded-panel border border-border bg-surface px-4 py-3 ${i % 2 ? "md:ml-6" : ""}`} key={name}>
+              <Mascot className="shrink-0" kind={kind} size={36} />
               <span className="min-w-0"><span className="block text-sm font-medium">{name}</span><span className="block text-xs text-muted">{job}</span></span>
             </div>)}
           </div>
@@ -72,7 +73,8 @@ export default function WelcomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
-        <div className="rounded-card bg-ink px-8 py-14 text-center text-surface sm:px-12">
+        <div className="relative overflow-hidden rounded-card bg-ink px-8 py-14 text-center text-surface sm:px-12">
+          <div aria-hidden className="mb-6 flex justify-center gap-3"><Mascot kind="director" size={34} className="-rotate-6" /><Mascot kind="design" size={34} className="translate-y-2" /><Mascot kind="implementation" size={34} className="rotate-6" /><Mascot kind="qa" size={34} className="translate-y-1" /></div>
           <h2 className="text-balance text-3xl font-semibold tracking-tight">Set up in minutes.</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 opacity-70">Upload your guideline or paste your website. Connect GitHub, Figma and Canva. Bring the agents into your chat.</p>
           <Link className="mt-7 inline-flex min-h-10 items-center rounded-full bg-surface px-5 text-sm font-medium text-ink transition-opacity hover:opacity-90" href="/signup">Get started free</Link>

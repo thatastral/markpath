@@ -111,7 +111,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
   const connected = setup.steps.filter((x) => x.status === "done"); const open = setup.steps.filter((x) => x.status !== "done");
   const chips: Array<[string, string, number]> = [["All", "all", setup.steps.length], ["Connected", "connected", connected.length], ["Needs setup", "setup", open.length]];
   const shown = notice.show === "connected" ? connected : notice.show === "setup" ? open : setup.steps;
-  const toolIcon = (key: SetupKey) => key === "brand" ? <BrandIcon /> : key === "check" ? <EyeCheckIcon /> : <ProviderIcon provider={key === "chat" ? "switch" : key} />;
+  const toolIcon = (key: SetupKey, connected = true) => key === "brand" ? <BrandIcon /> : key === "check" ? <EyeCheckIcon /> : <ProviderIcon connected={connected} provider={key === "chat" ? "switch" : key} size={18} />;
   return <main className="anim-rise">
     <SetupClearNotice />
     <PageHeader actions={<SetupRefreshButton />} description="Connect your tools in order. A step turns green only after Markpath has used it, so green means it works." title="Integrations" />
@@ -126,7 +126,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <nav aria-label="Filter tools" className="mt-3 flex flex-wrap gap-1">{chips.map(([label, value, count]) => { const on = (notice.show ?? "all") === value; return <Link aria-current={on ? "page" : undefined} className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-medium lg:min-h-7 ${on ? "border-border-strong bg-hover text-ink" : "border-border text-muted hover:bg-hover hover:text-ink"}`} href={value === "all" ? "/integrations" : `/integrations?show=${value}`} key={value}>{label}<span className="tabular-nums text-muted">{count}</span></Link>; })}</nav>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{shown.map((step) => <li className={`flex flex-col ${cardClass} p-4`} key={step.key}>
         <div className="flex items-start justify-between gap-3">
-          <span aria-hidden className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border text-ink">{toolIcon(step.key)}</span>
+          <span aria-hidden className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border text-ink">{toolIcon(step.key, step.status === "done")}</span>
           <Link className={buttonClass(step.key === nextKey ? "primary" : "secondary", "sm")} href={`#step-${step.n}`}>{cardLabel(step)}<span className="sr-only"> {step.title}</span></Link>
         </div>
         <h3 className="mt-3 text-sm font-semibold">{step.title}</h3>
@@ -176,7 +176,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         </section>
         <section aria-labelledby="conn-more" className="px-4 py-5 sm:px-5">
           <h3 className="text-sm font-semibold" id="conn-more">Connection details</h3>
-          <ul className="mt-3 divide-y divide-border rounded-control border border-border">{integrations.map((i) => <li className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2" key={i.provider}><span className="inline-flex items-center gap-2 font-medium"><ProviderIcon className="text-muted" provider={i.provider} size={14} />{providerName(i.provider)}</span><span className="text-xs text-muted">{i.provider === "switch" ? (roomReplies > 0 ? "Connected" : "Not connected") : connectionLabel(i.connection_status)} · <span className="tabular-nums">{i.last_checked_at ? `last used ${whenText(i.last_checked_at)}` : "not used yet"}</span></span></li>)}</ul>
+          <ul className="mt-3 divide-y divide-border rounded-control border border-border">{integrations.map((i) => <li className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2" key={i.provider}><span className="inline-flex items-center gap-2 font-medium"><ProviderIcon connected={i.connection_status === "connected"} provider={i.provider} size={14} />{providerName(i.provider)}</span><span className="text-xs text-muted">{i.provider === "switch" ? (roomReplies > 0 ? "Connected" : "Not connected") : connectionLabel(i.connection_status)} · <span className="tabular-nums">{i.last_checked_at ? `last used ${whenText(i.last_checked_at)}` : "not used yet"}</span></span></li>)}</ul>
         </section>
       </div>
     </details>

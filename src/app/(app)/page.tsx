@@ -90,7 +90,7 @@ export default async function OverviewPage() {
     <section aria-labelledby="tools-heading" className="mt-10">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/integrations">Manage<ChevronRight size={14} /></Link>} id="tools-heading" title="Your tools" />
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">{integrations.map((i) => <li className={`flex min-h-14 items-center gap-3 ${cardClass} px-4 py-3`} key={i.provider}>
-        <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-border text-ink"><ProviderIcon provider={i.provider} size={16} /></span>
+        <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-border text-ink"><ProviderIcon connected={i.connection_status === "connected"} provider={i.provider} size={16} /></span>
         <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{providerName(i.provider)}</span><span className="block truncate text-xs text-muted" title={toolText(i.provider, i.connection_status, i.mode)}>{toolText(i.provider, i.connection_status, i.mode)}</span></span>
         <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot[toolTone(i.provider, i.connection_status)]}`} />
       </li>)}</ul>
