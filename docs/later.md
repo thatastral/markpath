@@ -16,6 +16,17 @@ Not for the Flip the Switch submission unless time is left. Do not forget these.
 - Slack (Socket Mode app) and Telegram (BotFather bot) connections, set up once per company. Switch's self-host and per-app docs have not been read yet.
 - Write an honest "Deploying for a team" doc.
 
+## Done since this list was written
+- Vet any link (Figma, Canva, pull request), pull request checks, scheduled repository audits, Reviews page.
+- Wider rules: text contrast (deterministic), voice and logo (flagged for a person).
+- Docker package and guides for Slack, Telegram, agents on a server and deploying for a team.
+
+## Still open
+- Proactive posts into the chat room (chosen: dashboard alerts only for now). Waking the Director on a schedule needs a way to post into the room, so it is not built.
+- Per-person Canva links (Markpath-owned Canva app and MCP client).
+- Postgres, roles beyond owner and member, a GitHub App instead of the OAuth app.
+- The Slack, Telegram and API-key paths are documented from Switch's docs but not run for real.
+
 ## Other hackathons
 - Builder.io Agent-Native hackathon (deadline 2026-11-09 11:59 PM PT): port after WeMakeDevs is submitted. First read the Agent-Native docs and estimate; ask hackathon@builder.io whether the same project may be submitted to both. The core logic (brand spec, audits, approvals, executors, QA) is framework-independent TypeScript.
 

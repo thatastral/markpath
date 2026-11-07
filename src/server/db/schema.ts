@@ -102,6 +102,10 @@ export function initializeSchema(db: Database.Database) {
       brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE, repo TEXT NOT NULL, number INTEGER NOT NULL, head_sha TEXT NOT NULL,
       findings INTEGER NOT NULL, commented INTEGER NOT NULL DEFAULT 0, checked_at TEXT NOT NULL, PRIMARY KEY (brand_id, repo, number, head_sha)
     );
+    CREATE TABLE IF NOT EXISTS brand_assets (
+      id TEXT PRIMARY KEY, brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE CASCADE, kind TEXT NOT NULL,
+      filename TEXT NOT NULL, storage_path TEXT NOT NULL, content_type TEXT NOT NULL, created_at TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_vet_reports_brand ON vet_reports(brand_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_api_tokens_brand ON api_tokens(brand_id, role);
     CREATE INDEX IF NOT EXISTS idx_memberships_brand ON memberships(brand_id);

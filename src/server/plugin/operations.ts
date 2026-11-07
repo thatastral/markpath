@@ -6,7 +6,7 @@ import { initializeSchema } from "@/server/db/schema";
 import { verifyToken } from "@/server/tokens/service";
 import { figmaMcpConfig } from "@/server/integrations/figma";
 import { canvaMcpConfig } from "@/server/integrations/canva";
-import { brandValuesFromSpec } from "@/server/brand/spec";
+import { brandJudgementRules, brandValuesFromSpec } from "@/server/brand/spec";
 import { consumeApproval, createTask, addTaskResource, recordActivity, requestApproval, transitionTask } from "@/server/tasks/service";
 
 export class PluginApiError extends Error { constructor(message: string, readonly status: number) { super(message); } }
@@ -37,7 +37,7 @@ export function pluginSpec(brandId: string) {
   if (!row) throw new PluginApiError("No approved brand specification yet. Approve it in the dashboard.", 409);
   const values = brandValuesFromSpec(row.specification);
   if (!values) throw new PluginApiError("The brand specification has no approved colour, typeface and radius rules yet.", 409);
-  return { brand: b.name, version: row.version, figmaMcp: figmaMcpConfig(b.id), canvaMcp: canvaMcpConfig(b.id), expected: values.expected, legacy: values.legacy };
+  return { brand: b.name, version: row.version, figmaMcp: figmaMcpConfig(b.id), canvaMcp: canvaMcpConfig(b.id), expected: values.expected, legacy: values.legacy, ...brandJudgementRules(row.specification), logoUploaded: Boolean(db().prepare("SELECT 1 FROM brand_assets WHERE brand_id = ? AND kind = 'logo'").get(b.id)) };
 }
 
 const findingsBody = z.object({ provider: z.enum(["figma", "canva"]).default("figma"), fileName: z.string().max(200), findings: z.array(z.object({ nodeName: z.string().max(200), property: z.string().max(60), detected: z.string().max(60), expected: z.string().max(60) })).max(500) });

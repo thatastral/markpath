@@ -25,3 +25,6 @@
 - GitHub: registered the Markpath OAuth app (Device Flow). Built Connect GitHub (device flow), repository picker, sample-repo creation, real scan, real branch + pull request after approval, independent API-based QA, secrets encrypted at rest. Verified against an in-memory fake of the GitHub API (28 tests pass). Not yet run against real GitHub.
 - Figma: plugin key card on Integrations. Plugin still untested in Figma.
 - Open: live room test of approve-by-chat; live GitHub test (needs the owner to authorize the device code); commit; public repo; demo video; blog; submission portal unknown.
+
+## 2026-11-07 (afternoon)
+- Built: vet any link, pull request watcher with comments, scheduled repository audits, Reviews page, contrast / voice / logo rules (judgement items go to "needs a person"), logo upload, Docker package, and guides for Slack, Telegram, agents on a server and team deployment. 39 tests pass. Docker image build and the new playbook steps are not yet run in the live room.

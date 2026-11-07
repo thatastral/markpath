@@ -13,7 +13,8 @@ import { figmaMcpConfig } from "@/server/integrations/figma";
 import { canvaMcpConfig, parseCanvaDesignId } from "@/server/integrations/canva";
 import { parseFigmaFileKey } from "@/server/integrations/figma";
 import { brandValuesFor, parsePullUrl, pullReviewSummary, recordVet, reviewPull } from "@/server/integrations/vet";
-import { brandValuesFromSpec } from "@/server/brand/spec";
+import { brandJudgementRules, brandValuesFromSpec } from "@/server/brand/spec";
+import { checkContrast } from "@/server/audits/contrast";
 import { playbook } from "./playbooks";
 import { agentDisplayName, type AgentPrincipal, type AgentRole } from "./auth";
 
@@ -208,8 +209,9 @@ export function figmaVerification(ctx: Ctx, input: { taskId: string; provider?: 
   const executed = db().prepare("SELECT 1 FROM execution_records WHERE task_id = ? AND resource_id = ? AND mode IN ('figma_mcp', 'figma_plugin', 'canva_mcp')").get(task.id, resource.id);
   if (!executed) throw new AgentApiError("The Design agent has not applied the change yet, so there is nothing to verify.", 409);
   // "humanReview" counts items only a person can resolve (for example a leftover template placeholder). They are reported but do not fail verification.
-  const humanReview = input.counts.humanReview ?? 0;
-  const remaining = Object.entries(input.counts).filter(([k]) => k !== "humanReview").reduce((sum, [, n]) => sum + n, 0); const verified = remaining === 0;
+  const needsPerson = new Set(["humanReview", "contrast", "logo", "voice"]); // judgement items: reported, never fail verification
+  const humanReview = Object.entries(input.counts).filter(([k]) => needsPerson.has(k)).reduce((sum, [, n]) => sum + n, 0);
+  const remaining = Object.entries(input.counts).filter(([k]) => !needsPerson.has(k)).reduce((sum, [, n]) => sum + n, 0); const verified = remaining === 0;
   const label = `independent re-read of the ${provider === "canva" ? "Canva design" : "Figma file"} by Brand QA through the ${provider === "canva" ? "Canva" : "Figma"} MCP; reported by the agent, not re-checked by Markpath`;
   const evidence = { verified, label, remainingOutdated: remaining, needsHumanReview: humanReview, counts: input.counts, checkedNodeIds: (input.checkedNodeIds ?? []).slice(0, 40), note: input.note?.slice(0, 300) };
   updateTaskResource({ taskId: task.id, resourceId: resource.id, status: verified ? "COMPLETED" : "FAILED", verificationEvidence: evidence, error: verified ? undefined : `${remaining} outdated value(s) remain.`, actor: "Brand QA" });
@@ -244,11 +246,19 @@ export async function vetLink(ctx: Ctx, input: { url: string }) {
 
 export function vetReport(ctx: Ctx, input: { kind: "figma" | "canva"; target: string; counts: Record<string, number>; items?: string[]; note?: string }) {
   requireRole(ctx.role, ["design"], "report a design review");
-  const humanReview = input.counts.humanReview ?? 0;
-  const outdated = Object.entries(input.counts).filter(([k]) => k !== "humanReview").reduce((sum, [, n]) => sum + n, 0);
+  const needsPerson = new Set(["humanReview", "contrast", "logo", "voice"]);
+  const humanReview = Object.entries(input.counts).filter(([k]) => needsPerson.has(k)).reduce((sum, [, n]) => sum + n, 0);
+  const outdated = Object.entries(input.counts).filter(([k]) => !needsPerson.has(k)).reduce((sum, [, n]) => sum + n, 0);
   const verdict = outdated > 0 ? "needs_changes" : humanReview > 0 ? "needs_review" : "clean";
   const label = input.kind === "canva" ? "Canva design" : "Figma file";
   const summary = verdict === "clean" ? `${label} follows the brand: no outdated values found.` : `${label}: ${outdated} outdated value(s)${humanReview ? ` and ${humanReview} item(s) only a person can resolve` : ""}.`;
   recordVet(ctx.brandId, { kind: input.kind, target: input.target, verdict, summary, details: { counts: input.counts, items: (input.items ?? []).slice(0, 30), note: input.note?.slice(0, 300) }, agent: agentDisplayName[ctx.role] });
   return { verdict, summary };
+}
+
+export function contrastCheck(ctx: Ctx, input: { pairs: import("@/server/audits/contrast").ContrastPair[] }) {
+  requireRole(ctx.role, ["design", "qa", "director"], "check contrast");
+  const row = db().prepare("SELECT brand_specification FROM brands WHERE id = ?").get(ctx.brandId) as { brand_specification: string } | undefined;
+  const { contrast } = brandJudgementRules(row?.brand_specification ?? "{}");
+  return { thresholds: contrast, ...checkContrast(input.pairs, contrast), note: "Contrast failures are design decisions: report them as 'contrast' items that need a person, never auto-fix them. Only failing or unmeasurable pairs are listed." };
 }

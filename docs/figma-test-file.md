@@ -19,3 +19,6 @@ Outdated values planted on purpose: primary `#164B9B`, typeface Inter, radius 4p
 Expected after a correct brand fix: variables updated (which updates the Button and the poster's CTA), text styles switched to Geist, the hard-coded fills and radii updated, nothing else changed (layout, copy and sizes identical).
 
 Account note: this account has a Full seat only in the "Dacoit" team (Pro). Its own teams are Starter with a View seat, so writes there would fail.
+
+## Added 2026-11-07: a judgement item for the wider rules
+The card's body copy ("Transfers settle instantly, with no hidden fees.") is `#98A2B3` on white, about 2.6:1, so it fails the 4.5:1 text contrast rule. It is reported as a "contrast" item that needs a person and is never auto-fixed. To reset it, set the text fill back to `#98A2B3` (it is not part of the brand colour fix).

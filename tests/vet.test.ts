@@ -77,3 +77,56 @@ describe("vetting links and pull requests", () => {
     expect((db.prepare("SELECT COUNT(*) AS n FROM approvals").get() as { n: number }).n).toBe(0); // or an approval
   }, 30_000);
 });
+
+import { runRepoAudit, runScheduledAuditIfDue } from "../src/server/integrations/vet";
+import { setScheduleAudits } from "../src/server/integrations/github";
+describe("repository audits", () => {
+  it("records a read-only audit and runs the schedule only when it is on and due", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "markpath-audit-")); dirs.push(dir); process.env.MARKPATH_DB_PATH = join(dir, "db.sqlite");
+    const { user, brand } = await seedDatabase(process.env.MARKPATH_DB_PATH); const db = getDatabase(process.env.MARKPATH_DB_PATH);
+    const version = await ingestFixtureGuideline(brand.id, user.id); approveSpec(brand.id, user.id, version.id);
+    const json = (b: unknown) => new Response(JSON.stringify(b), { headers: { "Content-Type": "application/json" } });
+    const css = ":root {\n  --color-primary: #164B9B;\n}\n";
+    const fetchImpl = (async (input: string | URL | Request) => { const p = new URL(typeof input === "string" ? input : input.toString()).pathname;
+      if (p === "/user") return json({ login: "jo" }); if (p === "/repos/jo/site") return json({ full_name: "jo/site", default_branch: "main", permissions: { push: true } });
+      if (p.endsWith("/git/trees/main")) return json({ truncated: false, tree: [{ path: "a.css", type: "blob", size: 10 }] });
+      if (p.includes("/contents/")) return json({ content: Buffer.from(css).toString("base64"), sha: "s" }); return json({}); }) as typeof fetch;
+    await connectGithub(brand.id, "gho_x", fetchImpl); await selectGithubRepo(brand.id, "jo/site", fetchImpl);
+    expect(await runScheduledAuditIfDue(brand.id, fetchImpl)).toBe(false); // off by default
+    setScheduleAudits(brand.id, true);
+    expect(await runScheduledAuditIfDue(brand.id, fetchImpl)).toBe(true);
+    expect(await runScheduledAuditIfDue(brand.id, fetchImpl)).toBe(false); // not due again yet
+    expect(await runScheduledAuditIfDue(brand.id, fetchImpl, Date.now() + 25 * 3_600_000)).toBe(true); // due after a day
+    expect(await runRepoAudit(brand.id, fetchImpl)).toMatchObject({ findings: 1, files: 1 });
+    expect((db.prepare("SELECT COUNT(*) AS n FROM vet_reports WHERE kind = 'repository audit'").get() as { n: number }).n).toBe(3);
+    expect((db.prepare("SELECT COUNT(*) AS n FROM tasks").get() as { n: number }).n).toBe(0);
+  }, 30_000);
+});
+
+import { checkContrast, contrastRatio, isLargeText } from "../src/server/audits/contrast";
+import { brandJudgementRules, extractFixtureBrandSpec } from "../src/server/brand/spec";
+import { contrastCheck } from "../src/server/agents/operations";
+import { readFileSync } from "node:fs";
+describe("wider rules", () => {
+  it("computes WCAG contrast correctly", () => {
+    expect(contrastRatio("#000000", "#FFFFFF")).toBeCloseTo(21, 1);
+    expect(contrastRatio("#777777", "#FFFFFF")).toBeCloseTo(4.48, 1);
+    expect(isLargeText(24)).toBe(true); expect(isLargeText(19, true)).toBe(true); expect(isLargeText(19, false)).toBe(false); expect(isLargeText(undefined)).toBe(false);
+    const r = checkContrast([{ label: "ok", foreground: "#101828", background: "#FFFFFF" }, { label: "light grey", foreground: "#98A2B3", background: "#FFFFFF", fontSize: 16 }, { label: "big grey", foreground: "#98A2B3", background: "#FFFFFF", fontSize: 40 }, { label: "bad", foreground: "nope", background: "#FFFFFF" }], { normal: 4.5, large: 3 });
+    expect(r.failing).toBe(2); expect(r.unmeasurable).toBe(1); // #98A2B3 on white is about 2.6:1: it fails 4.5:1 and also the 3:1 large-text bar
+    expect(r.results.map((x) => x.label).sort()).toEqual(["bad", "big grey", "light grey"]);
+    expect(checkContrast([{ label: "big dark grey", foreground: "#767676", background: "#FFFFFF", fontSize: 40 }], { normal: 4.5, large: 3 }).failing).toBe(0);
+  });
+  it("reads voice and contrast rules from the guideline, with WCAG defaults when absent", () => {
+    const spec = extractFixtureBrandSpec(readFileSync("fixtures/nexa-brand-guidelines.md", "utf8"));
+    expect(spec.rules.find((r) => r.id === "brand-voice")?.expected).toContain("no exclamation marks");
+    expect(brandJudgementRules(JSON.stringify(spec)).contrast).toEqual({ normal: 4.5, large: 3 });
+    expect(brandJudgementRules("{}")).toEqual({ voice: null, contrast: { normal: 4.5, large: 3 } });
+  });
+  it("lets only Design, QA and the Director run the contrast check", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "markpath-contrast-")); dirs.push(dir); process.env.MARKPATH_DB_PATH = join(dir, "db.sqlite");
+    const { brand } = await seedDatabase(process.env.MARKPATH_DB_PATH);
+    expect(contrastCheck({ role: "design", brandId: brand.id }, { pairs: [{ label: "x", foreground: "#98A2B3", background: "#FFFFFF", fontSize: 14 }] }).failing).toBe(1);
+    expect(() => contrastCheck({ role: "implementation", brandId: brand.id }, { pairs: [] })).toThrow("not allowed");
+  });
+});

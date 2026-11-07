@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const brandRuleSchema = z.object({
-  id: z.string(), category: z.enum(["colour", "typography", "component", "logo"]), label: z.string(), expected: z.string(),
+  id: z.string(), category: z.enum(["colour", "typography", "component", "logo", "voice", "accessibility"]), label: z.string(), expected: z.string(),
   sourceReference: z.string(), status: z.enum(["extracted", "manual", "approved"]), previous: z.string().optional()
 });
 export const brandSpecSchema = z.object({
@@ -23,6 +23,8 @@ export function extractFixtureBrandSpec(contents: string, brandName = "Nexa"): B
   const typeface = capture(contents, /Primary (?:typeface|font):\s*`?([A-Za-z][A-Za-z -]*)`?/i);
   const radius = capture(contents, /Button radius:\s*`?([\d.]+px)`?/i);
   const logoRule = capture(contents, /(Use the approved[^.]+\.)/i);
+  const voice = capture(contents, /Brand voice:\s*(.+)/i);
+  const contrast = capture(contents, /Text contrast:[^\n]*?(\d(?:\.\d)?):1/i);
   // "These rules supersede the previous primary blue `#164B9B`, Inter typeface, and 4px button radius."
   const previousColour = capture(contents, /previous primary (?:blue|colour|color)\s*`?(#[0-9a-fA-F]{6})`?/i);
   const previousTypeface = capture(contents, /,\s*([A-Za-z][A-Za-z -]*?) typeface/i);
@@ -32,6 +34,8 @@ export function extractFixtureBrandSpec(contents: string, brandName = "Nexa"): B
   if (typeface) rules.push({ id: "primary-typeface", category: "typography", label: "Primary typeface", expected: typeface, sourceReference: lineReference(contents, typeface), status: "extracted", ...(previousTypeface ? { previous: previousTypeface } : {}) });
   if (radius) rules.push({ id: "button-radius", category: "component", label: "Button radius", expected: radius, sourceReference: lineReference(contents, radius), status: "extracted", ...(previousRadius ? { previous: previousRadius } : {}) });
   if (logoRule) rules.push({ id: "logo-usage", category: "logo", label: "Logo usage", expected: logoRule, sourceReference: lineReference(contents, logoRule), status: "extracted" });
+  if (voice) rules.push({ id: "brand-voice", category: "voice", label: "Brand voice", expected: voice, sourceReference: lineReference(contents, voice), status: "extracted" });
+  if (contrast) rules.push({ id: "text-contrast", category: "accessibility", label: "Minimum text contrast", expected: `${contrast}:1`, sourceReference: lineReference(contents, contrast), status: "extracted" });
   return brandSpecSchema.parse({ brandName, version, extractionMode: "fixture extraction", rules });
 }
 
@@ -43,4 +47,12 @@ export function brandValuesFromSpec(specification: string) {
   const expected = { primaryColour: rule("primary-colour")?.expected, primaryTypeface: rule("primary-typeface")?.expected, buttonRadius: rule("button-radius")?.expected };
   if (!expected.primaryColour || !expected.primaryTypeface || !expected.buttonRadius) return null;
   return { expected: expected as { primaryColour: string; primaryTypeface: string; buttonRadius: string }, legacy: { primaryColour: rule("primary-colour")?.previous ?? defaultLegacy.primaryColour, primaryTypeface: rule("primary-typeface")?.previous ?? defaultLegacy.primaryTypeface, buttonRadius: rule("button-radius")?.previous ?? defaultLegacy.buttonRadius } };
+}
+
+/** The judgement-based and accessibility rules, with WCAG AA defaults when the guideline does not set a contrast. */
+export function brandJudgementRules(specification: string) {
+  const spec = JSON.parse(specification) as { rules?: Array<{ id: string; expected: string }> };
+  const get = (id: string) => spec.rules?.find((r) => r.id === id)?.expected;
+  const normal = Number.parseFloat(get("text-contrast") ?? "4.5") || 4.5;
+  return { voice: get("brand-voice") ?? null, contrast: { normal, large: Math.min(3, normal) } };
 }

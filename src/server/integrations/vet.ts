@@ -4,7 +4,7 @@ import { initializeSchema } from "@/server/db/schema";
 import { brandValuesFromSpec } from "@/server/brand/spec";
 import { findBrandChanges } from "@/server/audits/brand-replace";
 import { recordActivity } from "@/server/tasks/service";
-import { getGithubConfig } from "./github";
+import { getGithubConfig, scanGithubRepo, schedulesAudits } from "./github";
 import { GithubClient, GithubError, type Fetch } from "./github-client";
 
 function db() { const database = getDatabase(); initializeSchema(database); return database; }
@@ -60,4 +60,20 @@ export async function checkNewPullRequests(brandId: string, fetchImpl?: Fetch) {
     const s = pullReviewSummary(review); recordVet(brandId, { kind: "pull request", target: `${c.repo}#${pr.number}`, verdict: s.verdict, summary: s.summary, details: { findings: review.findings.slice(0, 30), commented: Boolean(didComment) }, agent: "Markpath PR check" });
   }
   return { checked, commented };
+}
+
+/** A read-only audit of the connected repository's default branch, recorded as a review. No task and no approval is created. */
+export async function runRepoAudit(brandId: string, fetchImpl?: Fetch, source: "scheduled" | "manual" = "manual") {
+  const c = getGithubConfig(brandId); if (!c?.repo) throw new GithubError("No GitHub repository is selected.", 409);
+  const { findings, files } = await scanGithubRepo(brandId, fetchImpl); const n = findings.length;
+  recordVet(brandId, { kind: "repository audit", target: c.repo, verdict: n === 0 ? "clean" : "needs_changes", summary: n === 0 ? `${c.repo}: no outdated brand values (${source} audit).` : `${c.repo}: ${n} outdated brand value(s) in ${files.length} file(s) (${source} audit).`, details: { findings: findings.slice(0, 30).map((f) => ({ location: f.location, rule: f.ruleId, detected: f.detected, expected: f.expected })), source }, agent: source === "scheduled" ? "Markpath scheduled audit" : "Markpath audit" });
+  return { findings: n, files: files.length };
+}
+/** Runs the scheduled audit when it is switched on and the last one is older than the interval (default 24 hours). */
+export async function runScheduledAuditIfDue(brandId: string, fetchImpl?: Fetch, now = Date.now()) {
+  if (!schedulesAudits(brandId)) return false;
+  const hours = Math.max(0.01, Number(process.env.MARKPATH_SCHEDULED_AUDIT_HOURS ?? 24));
+  const last = db().prepare("SELECT created_at FROM vet_reports WHERE brand_id = ? AND kind = 'repository audit' AND details LIKE '%\"source\":\"scheduled\"%' ORDER BY created_at DESC LIMIT 1").get(brandId) as { created_at: string } | undefined;
+  if (last && now - Date.parse(last.created_at) < hours * 3_600_000) return false;
+  await runRepoAudit(brandId, fetchImpl, "scheduled"); return true;
 }

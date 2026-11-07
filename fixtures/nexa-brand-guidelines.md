@@ -12,6 +12,14 @@ Primary typeface: Geist
 
 Button radius: 8px
 
+## Voice
+
+Brand voice: Clear, direct and calm. Plain words, sentence case, no hype, no exclamation marks, no jargon.
+
+## Accessibility
+
+Text contrast: at least 4.5:1 for body text and 3:1 for large text.
+
 ## Logo
 
 Use the approved Nexa wordmark only. Do not use the legacy logo.

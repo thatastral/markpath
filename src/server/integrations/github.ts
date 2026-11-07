@@ -23,6 +23,8 @@ export function getGithubConfig(brandId: string): GithubConfig | null {
   return { token: s.secret, login: String(s.meta.login ?? ""), repo: s.meta.repo as string | undefined, defaultBranch: s.meta.defaultBranch as string | undefined };
 }
 export function setWatchPulls(brandId: string, on: boolean) { const s = getIntegrationSecret(brandId, "github"); if (s) updateIntegrationMeta(brandId, "github", { ...s.meta, watchPulls: on }); }
+export function setScheduleAudits(brandId: string, on: boolean) { const s = getIntegrationSecret(brandId, "github"); if (s) updateIntegrationMeta(brandId, "github", { ...s.meta, scheduleAudits: on }); }
+export const schedulesAudits = (brandId: string) => Boolean(getIntegrationSecret(brandId, "github")?.meta.scheduleAudits);
 export const watchesPulls = (brandId: string) => Boolean(getIntegrationSecret(brandId, "github")?.meta.watchPulls);
 export const isRealGithub = (brandId: string) => { const c = getGithubConfig(brandId); return Boolean(c?.repo); };
 

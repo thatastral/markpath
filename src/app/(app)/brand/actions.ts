@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUserId } from "@/server/auth/session";
 import { approveSpec, ingestFixtureGuideline, ingestGuidelineUpload } from "@/server/brand/service";
+import { saveBrandLogo } from "@/server/brand/logo";
 
 function returnToBrand(message?: string) { redirect(`/brand${message ? `?message=${encodeURIComponent(message)}` : ""}`); }
 
@@ -22,4 +23,12 @@ export async function uploadGuideline(brandId: string, formData: FormData) {
 export async function approveVersion(brandId: string, versionId: string) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
   await approveSpec(brandId, userId, versionId); revalidatePath("/brand"); revalidatePath("/"); returnToBrand("Brand specification approved and activated.");
+}
+
+export async function uploadLogo(brandId: string, formData: FormData) {
+  const userId = await currentUserId(); if (!userId) redirect("/login");
+  const file = formData.get("logo");
+  if (!(file instanceof File)) { returnToBrand("Choose a logo image to upload."); return; }
+  try { await saveBrandLogo(brandId, userId, file); } catch (error) { returnToBrand(error instanceof Error ? error.message : "Logo upload failed."); }
+  revalidatePath("/brand"); returnToBrand("Reference logo saved. Reviews will compare logos in designs against it.");
 }
