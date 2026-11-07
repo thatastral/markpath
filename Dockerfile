@@ -3,7 +3,7 @@ FROM node:24-bookworm-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ git && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set fetch-retries 6 && npm config set fetch-retry-mintimeout 5000 && npm config set fetch-timeout 120000 && npm ci
 COPY . .
 RUN npm run build
 
