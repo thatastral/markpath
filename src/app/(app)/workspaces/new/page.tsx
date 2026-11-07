@@ -1,5 +1,6 @@
+import { PageHeader } from "@/components/ui/primitives";
 import { WorkspaceForm } from "./workspace-form";
 
 export default function NewWorkspacePage() {
-  return <main className="mx-auto max-w-xl px-6 py-10"><p className="text-sm font-semibold text-brand">New workspace</p><h1 className="mt-2 text-2xl font-semibold">Set up a brand workspace</h1><p className="mt-2 text-sm text-muted">A workspace holds one brand: its rules, connections, chat room and history. You can create more and switch between them.</p><WorkspaceForm /></main>;
+  return <main className="anim-rise mx-auto max-w-xl px-4 py-8 sm:px-6 sm:py-10"><PageHeader description="A workspace holds one brand: its rules, connections, chat room and history. You can create more and switch between them." eyebrow="New workspace" title="Set up a brand workspace" /><div className="mt-6 rounded-card border border-border bg-surface p-4 shadow-card sm:p-6"><WorkspaceForm /></div></main>;
 }

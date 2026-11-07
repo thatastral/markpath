@@ -1,21 +1,152 @@
-@import "../styles/tokens.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Markpath tokens. Source of truth: .claude/skills/markpath-design/SKILL.md */
+:root {
+  color-scheme: light;
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-subtle: #f1f3f6;
+  --color-ink: #0f1729;
+  --color-muted: #5b6474;
+  --color-border: #e3e6eb;
+  --color-border-strong: #cdd3dc;
+  --color-brand: #2457f5;
+  --color-brand-solid: #2457f5;
+  --color-brand-solid-hover: #1c47d6;
+  --color-brand-soft: #eef2ff;
+  --color-success: #157f3b;
+  --color-success-soft: #e8f6ee;
+  --color-warning: #9a5b00;
+  --color-warning-soft: #fff4e0;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 1px rgb(16 24 40 / 0.02);
+  --shadow-pop: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 2px 6px rgb(16 24 40 / 0.06);
+
+  /* Motion tokens (motion-system, Subtle mode) */
+  --duration-none: 0ms;
+  --duration-xshort: 75ms;
+  --duration-short: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-xslow: 600ms;
+  --ease-none: cubic-bezier(0, 0, 1, 1);
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-cubic: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  --ease-in-quart: cubic-bezier(0.895, 0.03, 0.685, 0.22);
+  --ease-in-out-cubic: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Amplitudes (zeroed under reduced motion) */
+  --motion-rise: 4px;
+  --motion-press: 0.98;
+  --motion-entry-duration: var(--duration-normal);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-canvas: #0b0d12;
+    --color-surface: #12151c;
+    --color-subtle: #181c25;
+    --color-ink: #e8ebf1;
+    --color-muted: #9aa3b2;
+    --color-border: #232935;
+    --color-border-strong: #333b49;
+    --color-brand: #8aa4ff;
+    --color-brand-solid: #3a66ff;
+    --color-brand-solid-hover: #4f76ff;
+    --color-brand-soft: #18213d;
+    --color-success: #4cd486;
+    --color-success-soft: #10261b;
+    --color-warning: #f0b44c;
+    --color-warning-soft: #2a2010;
+    --color-danger: #ff7a6e;
+    --color-danger-soft: #2c1413;
+    --shadow-card: 0 0 0 0 transparent;
+    --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-rise: 0px;
+    --motion-press: 1;
+    --motion-entry-duration: var(--duration-short);
+  }
+}
+
 * { box-sizing: border-box; }
-html { background: var(--color-canvas); }
-body { margin: 0; color: var(--color-ink); background: var(--color-canvas); font-family: Arial, sans-serif; }
-button, input { font: inherit; }
+html { background: var(--color-canvas); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
 a { color: inherit; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+code, kbd { font-family: var(--font-mono), ui-monospace, monospace; font-size: 0.875em; }
+::selection { background: color-mix(in srgb, var(--color-brand) 25%, transparent); }
 
 /* Long values (links, ids, colours) wrap instead of forcing sideways scrolling at 320px. */
 main { overflow-wrap: anywhere; }
 main article, main section, main li { min-width: 0; }
-button, [type="submit"], input:not([type="checkbox"]) { min-height: 2.5rem; }
-input[type="checkbox"] { width: 1.125rem; height: 1.125rem; }
-button:active { opacity: .85; }
-@media (prefers-reduced-motion: no-preference) { button, a { transition: background-color 120ms ease-out, border-color 120ms ease-out, opacity 120ms ease-out; } }
-input[type="checkbox"] { width: 1rem; height: 1rem; }
+button, [type="submit"], input:not([type="checkbox"]):not([type="file"]), select { min-height: 2.5rem; }
+input[type="checkbox"] { width: 1.125rem; height: 1.125rem; accent-color: var(--color-brand-solid); }
+input[type="file"] { font-size: 0.875rem; color: var(--color-muted); max-width: 100%; }
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem; min-height: 2.25rem; padding: 0 0.75rem; cursor: pointer;
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-control);
+  background: var(--color-surface); color: var(--color-ink); font-weight: 500;
+  transition: background-color var(--duration-short) var(--ease-out-quad);
+}
+input[type="file"]::file-selector-button:hover { background: var(--color-subtle); }
+input::placeholder { color: var(--color-muted); opacity: 0.8; }
+
+/* Focus: instant, never removed. */
+:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
 #content:focus { outline: none; }
+
+/* Interaction feedback: colour on hover, a small press on buttons. */
+button, a, summary, input, select {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--duration-short);
+  transition-timing-function: var(--ease-out-quad);
+}
+button:not(:disabled):active, .press:active { transform: scale(var(--motion-press)); transition-duration: var(--duration-xshort); }
+button:disabled { cursor: not-allowed; }
+
+/* Entry: fade + 4px rise, once per navigation. */
+@keyframes mp-rise { from { opacity: 0; transform: translateY(var(--motion-rise)); } to { opacity: 1; transform: none; } }
+@keyframes mp-fade { from { opacity: 0; } to { opacity: 1; } }
+.anim-rise { animation: mp-rise var(--motion-entry-duration) var(--ease-out-cubic) both; }
+.anim-fade { animation: mp-fade var(--motion-entry-duration) var(--ease-out-cubic) both; }
+
+/* Disclosures: content rises in, chevron turns. */
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] > :not(summary) { animation: mp-rise var(--motion-entry-duration) var(--ease-out-cubic) both; }
+details .chev { transition: transform var(--duration-short) var(--ease-out-cubic); }
+details[open] > summary .chev { transform: rotate(90deg); }
+
+/* Progress bars fill with transform, not width. */
+.progress-fill { transform-origin: left; transition: transform var(--duration-slow) var(--ease-in-out-cubic); }
+
+/* Spinner: only shown while waiting on an external step (progress, not decoration). */
+@keyframes mp-spin { to { transform: rotate(360deg); } }
+.spin { animation: mp-spin calc(var(--duration-slow) * 2) var(--ease-none) infinite; /* progress loader, allowed to loop */ }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: calc(var(--duration-xslow) * 4); } }

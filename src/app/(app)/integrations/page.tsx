@@ -18,9 +18,11 @@ import { SetupExternalLink } from "@/components/setup-external-link";
 import { SetupRefreshButton } from "@/components/setup-refresh-button";
 import { SetupStepCard, setupUi } from "@/components/setup-step";
 import { connectionLabel, providerName, whenText } from "@/lib/labels";
+import { Badge, cardClass, Notice, PageHeader, Progress } from "@/components/ui/primitives";
+import { ChevronRight, ProviderIcon } from "@/components/ui/icons";
 import { runRepoAuditAction, saveCanvaDesignAction, saveWatchPullsAction, saveChatHandle, saveFigmaFileAction, saveTeamPrefix } from "./actions";
 
-const label = "font-medium";
+const label = "text-sm font-medium";
 const help = "text-muted";
 const field = "grid gap-1 text-sm";
 const row = "flex flex-wrap gap-2";
@@ -79,11 +81,11 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         <div className={row}><input className={`${setupUi.input} sm:max-w-xs`} defaultValue={chatHandle} id="handle" name="handle" placeholder="your-username" /><button className={setupUi.secondary} type="submit">Save username</button></div>
         <span className={help}>Your username in the chat app, without the @. Lets you approve changes by replying in the room.</span>
       </form>
-      <div className="rounded-[var(--radius-control)] border border-border bg-canvas p-3">
+      <div className="rounded-control border border-border bg-subtle p-4">
         <p className={label}>Test it</p>
         <p className="mt-1">Send this in the room. This step turns green when an agent answers.</p>
         <p className="mt-2"><SetupCopyButton label="test message" value={`@${teamPrefix}-director what's the status?`} /></p>
-        {roomReplies > 0 && <p className="mt-1 text-green-800">Agents have answered {roomReplies === 1 ? "once" : `${roomReplies} times`} so far.</p>}
+        {roomReplies > 0 && <p className="mt-2 text-success">Agents have answered {roomReplies === 1 ? "once" : `${roomReplies} times`} so far.</p>}
       </div>
     </div>,
 
@@ -98,28 +100,32 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     canva: "Edits run as the Canva account connected to the agents. Colours and wording only, not fonts.",
   };
 
-  return <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+  return <main className="anim-rise mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
     <SetupClearNotice />
-    <p className="text-sm font-semibold text-brand">Integrations</p>
-    <h1 className="mt-2 text-3xl font-semibold">Set up your tools</h1>
-    <p className="mt-2 max-w-2xl text-muted">Work through these steps in order. Each one turns green only after Markpath has really used it, so green means it works.</p>
-    {notice.saved && <p className="mt-4 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3 text-sm" role="status">{notice.saved}</p>}
-    {notice.problem && <p className="mt-4 rounded-[var(--radius-control)] border border-danger px-4 py-3 text-sm text-danger" role="alert">{notice.problem}</p>}
+    <PageHeader description="Work through these steps in order. Each one turns green only after Markpath has really used it, so green means it works." eyebrow="Integrations" title="Set up your tools" />
+    {notice.saved && <Notice role="status" tone="success">{notice.saved}</Notice>}
+    {notice.problem && <Notice role="alert" tone="danger">{notice.problem}</Notice>}
 
     <section aria-labelledby="steps-heading" className="mt-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold" id="steps-heading">Setup steps <span className="text-sm font-normal text-muted">· {required - setup.requiredLeft} of {required} needed steps done{setup.requiredLeft === 0 ? ". You're all set." : ""}</span></h2>
-        <SetupRefreshButton />
+      <div className={`${cardClass} p-4 sm:p-5`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold tracking-tight" id="steps-heading">Setup steps{setup.requiredLeft === 0 && <Badge tone="success">You&apos;re all set</Badge>}</h2>
+            <p className="text-sm text-muted"><span className="tabular-nums">{required - setup.requiredLeft} of {required}</span> needed steps done</p>
+          </div>
+          <SetupRefreshButton />
+        </div>
+        <div className="mt-3"><Progress label="Setup progress" max={required} value={required - setup.requiredLeft} /></div>
+        <p className="mt-3 text-sm text-muted">Finished something in another app? Select Check again to update these.</p>
       </div>
-      <p className="mt-1 text-sm text-muted">Finished something in another app? Select Check again to update these.</p>
       <ol className="mt-4 grid gap-3">
         {setup.steps.map((step) => <SetupStepCard key={step.key} note={notes[step.key]} step={step}>{actions[step.key]}</SetupStepCard>)}
       </ol>
     </section>
 
-    <details className="mt-10 rounded-lg border border-border bg-surface">
-      <summary className={`cursor-pointer rounded-lg p-4 ${setupUi.focus}`}><h2 className="inline text-lg font-semibold">More settings</h2><span className="ml-2 text-sm text-muted">Pull request checks, Figma plugin, connection details</span></summary>
-      <div className="grid gap-8 border-t border-border p-4 text-sm">
+    <details className={`mt-10 ${cardClass}`}>
+      <summary className={`flex cursor-pointer items-start gap-3 rounded-card p-4 hover:bg-subtle/60 sm:p-5 ${setupUi.focus}`}><ChevronRight className="chev mt-1 shrink-0 text-muted" /><span className="min-w-0"><h2 className="text-lg font-semibold tracking-tight">More settings</h2><span className="block text-sm text-muted">Pull request checks, Figma plugin, connection details</span></span></summary>
+      <div className="grid gap-8 border-t border-border p-4 text-sm sm:p-5">
         <section aria-labelledby="gh-more">
           <h3 className="font-semibold" id="gh-more">GitHub checks</h3>
           {github?.repo ? <>
@@ -139,7 +145,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         </section>
         <section aria-labelledby="conn-more">
           <h3 className="font-semibold" id="conn-more">Connection details</h3>
-          <ul className="mt-2 grid gap-2">{integrations.map((i) => <li className="flex flex-wrap justify-between gap-x-3 rounded-[var(--radius-control)] border border-border px-3 py-2" key={i.provider}><span className="font-medium">{providerName(i.provider)}</span><span className="text-muted">{i.provider === "switch" ? (roomReplies > 0 ? "Connected" : "Not connected") : connectionLabel(i.connection_status)} · {i.last_checked_at ? `last used ${whenText(i.last_checked_at)}` : "not used yet"}</span></li>)}</ul>
+          <ul className="mt-2 divide-y divide-border rounded-control border border-border">{integrations.map((i) => <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2.5" key={i.provider}><span className="inline-flex items-center gap-2 font-medium"><ProviderIcon provider={i.provider} />{providerName(i.provider)}</span><span className="text-muted">{i.provider === "switch" ? (roomReplies > 0 ? "Connected" : "Not connected") : connectionLabel(i.connection_status)} · {i.last_checked_at ? `last used ${whenText(i.last_checked_at)}` : "not used yet"}</span></li>)}</ul>
         </section>
       </div>
     </details>

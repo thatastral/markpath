@@ -1,10 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { GithubIcon, SpinnerIcon } from "@/components/ui/icons";
 
 type Flow = { userCode: string; verificationUri: string; interval: number };
 type Repo = { fullName: string; private: boolean };
-const button = "rounded-[var(--radius-control)] border border-border px-3 py-2 text-sm font-medium disabled:opacity-60";
+const button = "inline-flex min-h-10 items-center gap-2 rounded-control border border-border-strong bg-surface px-3 text-sm font-medium shadow-card hover:bg-subtle disabled:opacity-60";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init); const data = await response.json().catch(() => ({})) as T & { error?: string };
@@ -41,11 +42,11 @@ export function GithubConnect({ login, repo }: { login: string | null; repo: str
   async function disconnect() { setBusy(true); try { await api("/api/integrations/github/disconnect", { method: "POST" }); setMessage(null); router.refresh(); } catch (e) { setError(e instanceof Error ? e.message : "Could not disconnect."); } setBusy(false); }
 
   return <div className="mt-4 grid gap-3 text-sm">
-    {!login && !flow && <div><p className="mb-2 text-muted">Connect GitHub so approved brand fixes open as real pull requests. Markpath never merges and never touches the default branch.</p><button className={button} disabled={busy} onClick={() => connect()} type="button">Connect GitHub</button></div>}
-    {flow && <div className="rounded-[var(--radius-control)] border border-border p-3"><p>1. Open <a className="underline" href={flow.verificationUri} rel="noreferrer" target="_blank">{flow.verificationUri}</a></p><p className="mt-1">2. Enter this code: <strong className="font-mono text-base tracking-widest">{flow.userCode}</strong></p><p className="mt-2 text-muted">Waiting for you to approve on GitHub…</p></div>}
+    {!login && !flow && <div><p className="mb-3 text-muted">Connect GitHub so approved brand fixes open as real pull requests. Markpath never merges and never touches the default branch.</p><button className="inline-flex min-h-10 items-center gap-2 rounded-control bg-brand-solid px-4 text-sm font-medium text-white shadow-card hover:bg-brand-solid-hover disabled:opacity-60" disabled={busy} onClick={() => connect()} type="button"><GithubIcon />Connect GitHub</button></div>}
+    {flow && <div className="anim-rise rounded-control border border-brand/40 bg-brand-soft p-4"><p>1. Open <a className="font-medium text-brand underline underline-offset-4" href={flow.verificationUri} rel="noreferrer" target="_blank">{flow.verificationUri}</a></p><p className="mt-1">2. Enter this code: <strong className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-base tracking-widest">{flow.userCode}</strong></p><p className="mt-3 flex items-center gap-2 text-muted"><SpinnerIcon className="text-brand" />Waiting for you to approve on GitHub…</p></div>}
     {login && <div><p>Signed in as <strong>{login}</strong>{repo ? <> · repository <strong>{repo}</strong></> : " · no repository chosen yet"}.</p>
-      <div className="mt-2 flex flex-wrap gap-2"><button className={button} disabled={busy} onClick={loadRepos} type="button">{repo ? "Change repository" : "Choose a repository"}</button><button className={button} disabled={busy} onClick={demoRepo} type="button">Create a sample repo to try it</button><button className="text-sm text-muted underline" disabled={busy} onClick={disconnect} type="button">Disconnect</button></div>
-      {repos && <div className="mt-2 flex flex-wrap items-center gap-2">{repos.length ? <><label className="sr-only" htmlFor="gh-repo">Repository</label><select className="rounded-[var(--radius-control)] border border-border bg-surface px-2 py-2" id="gh-repo" onChange={(e) => setChoice(e.target.value)} value={choice}>{repos.map((r) => <option key={r.fullName} value={r.fullName}>{r.fullName}{r.private ? " (private)" : ""}</option>)}</select><button className={button} disabled={busy || !choice} onClick={select} type="button">Use this repository</button></> : <p className="text-muted">No repositories with push access found.</p>}</div>}</div>}
+      <div className="mt-2 flex flex-wrap gap-2"><button className={button} disabled={busy} onClick={loadRepos} type="button">{repo ? "Change repository" : "Choose a repository"}</button><button className={button} disabled={busy} onClick={demoRepo} type="button">Create a sample repo to try it</button><button className="inline-flex min-h-10 items-center rounded-control px-3 text-sm font-medium text-muted hover:bg-danger-soft hover:text-danger disabled:opacity-60" disabled={busy} onClick={disconnect} type="button">Disconnect</button></div>
+      {repos && <div className="mt-2 flex flex-wrap items-center gap-2">{repos.length ? <><label className="sr-only" htmlFor="gh-repo">Repository</label><select className="min-w-0 max-w-full rounded-control border border-border-strong bg-surface px-2 py-2 text-sm" id="gh-repo" onChange={(e) => setChoice(e.target.value)} value={choice}>{repos.map((r) => <option key={r.fullName} value={r.fullName}>{r.fullName}{r.private ? " (private)" : ""}</option>)}</select><button className={button} disabled={busy || !choice} onClick={select} type="button">Use this repository</button></> : <p className="text-muted">No repositories with push access found.</p>}</div>}</div>}
     {message && <p className="text-muted" role="status">{message}</p>}{error && <p className="text-danger" role="alert">{error}</p>}
   </div>;
 }
