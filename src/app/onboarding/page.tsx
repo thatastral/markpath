@@ -89,7 +89,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           <ol className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 md:mx-0 md:flex-col md:overflow-visible md:px-0">
             {steps.map((s, i) => { const on = s.id === current; return <li key={s.id} className="shrink-0">
               <Link href={`/onboarding?step=${s.id}`} aria-current={on ? "step" : undefined} className={`press flex min-h-10 items-center gap-2 rounded-control px-2 text-sm lg:min-h-8 ${on ? "bg-surface font-medium text-ink shadow-[0_0_0_1px_var(--color-border-strong)]" : "text-muted hover:bg-hover hover:text-ink"}`}>
-                <span aria-hidden className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums ${done[s.id] ? "bg-success-soft text-success" : on ? "bg-brand-solid text-white" : "border border-border-strong"}`}>{done[s.id] ? <CheckIcon size={12} /> : i + 1}</span>
+                <span aria-hidden className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-semibold tabular-nums ${done[s.id] ? "bg-success-soft text-success" : on ? "bg-brand-solid text-on-brand" : "border border-border-strong"}`}>{done[s.id] ? <CheckIcon size={12} /> : i + 1}</span>
                 <span className="whitespace-nowrap">{s.title}</span>{"optional" in s && <span className="whitespace-nowrap text-2xs font-normal text-muted">Optional</span>}{done[s.id] && <span className="sr-only">(done)</span>}
               </Link>
             </li>; })}

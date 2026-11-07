@@ -30,6 +30,7 @@ const config: Config = {
         "brand-solid": token("brand-solid"),
         "brand-solid-hover": token("brand-solid-hover"),
         "brand-soft": token("brand-soft"),
+        "on-brand": token("on-brand"),
         success: token("success"),
         "success-soft": token("success-soft"),
         warning: token("warning"),

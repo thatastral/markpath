@@ -34,7 +34,7 @@ export function MainNav({ pending = 0 }: { pending?: number }) {
     return <Link aria-current={on ? "page" : undefined} className={`press group flex min-h-10 items-center gap-2.5 rounded-control px-2 text-sm lg:min-h-8 ${on ? "bg-hover font-medium text-ink" : "text-ink/85 hover:bg-hover hover:text-ink"}`} href={href} key={href} title={label}>
       <span aria-hidden className={on ? "text-ink" : "text-muted group-hover:text-ink"}>{icon}</span>
       <span className="sb-text min-w-0 flex-1 truncate">{label}</span>
-      {href === "/issues" && pending > 0 && <span className="sb-hide inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-solid px-1.5 text-2xs font-semibold tabular-nums text-white">{pending}<span className="sr-only"> waiting for approval</span></span>}
+      {href === "/issues" && pending > 0 && <span className="sb-hide inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-solid px-1.5 text-2xs font-semibold tabular-nums text-on-brand">{pending}<span className="sr-only"> waiting for approval</span></span>}
     </Link>;
   })}</nav>;
 }

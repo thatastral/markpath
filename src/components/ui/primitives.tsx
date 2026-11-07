@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-brand-solid text-white hover:bg-brand-solid-hover",
+  primary: "bg-brand-solid text-on-brand hover:bg-brand-solid-hover",
   secondary: "border border-border-strong bg-surface text-ink hover:bg-hover",
   ghost: "text-muted hover:bg-hover hover:text-ink",
   danger: "border border-border-strong bg-surface text-ink hover:border-danger/50 hover:text-danger",
@@ -12,8 +12,8 @@ const variants: Record<ButtonVariant, string> = {
 
 /** Class string for a button-looking element (works on <button>, <a> and <Link>). 40px on touch, 32/28px on desktop. */
 export function buttonClass(variant: ButtonVariant = "secondary", size: "md" | "sm" = "md", extra = "") {
-  const sizing = size === "md" ? "min-h-10 px-3 lg:min-h-8" : "min-h-10 px-2.5 lg:min-h-7";
-  return `press inline-flex max-w-full select-none items-center justify-center gap-1.5 rounded-control text-center text-sm font-medium leading-5 disabled:opacity-50 ${sizing} ${variants[variant]} ${extra}`.trim();
+  const sizing = size === "md" ? "min-h-10 px-4 lg:min-h-8" : "min-h-10 px-3 lg:min-h-7";
+  return `press inline-flex max-w-full select-none items-center justify-center gap-1.5 rounded-full text-center text-sm font-medium leading-5 disabled:opacity-50 ${sizing} ${variants[variant]} ${extra}`.trim();
 }
 
 /** A text link in the accent colour with a 40px hit area on touch. */
@@ -32,7 +32,7 @@ export function Badge({ tone = "neutral", children, dot = true, className = "" }
 
 /** A small count next to a label (nav items, group bands, section titles). */
 export function Count({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "brand" }) {
-  return <span className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-2xs font-medium tabular-nums ${tone === "brand" ? "bg-brand-solid text-white" : "text-muted"}`}>{children}</span>;
+  return <span className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-2xs font-medium tabular-nums ${tone === "brand" ? "bg-brand-solid text-on-brand" : "text-muted"}`}>{children}</span>;
 }
 
 export const severityTone = (s: string): Tone => (s === "high" || s === "critical" ? "danger" : s === "medium" ? "warning" : "neutral");
@@ -129,7 +129,7 @@ export function ChangeArrow() {
 }
 
 const AGENTS: Array<[RegExp, string, string]> = [
-  [/director/i, "BD", "bg-brand-solid text-white"],
+  [/director/i, "BD", "bg-brand-solid text-on-brand"],
   [/design|figma/i, "DA", "bg-[#8b5cf6] text-white"],
   [/implement|github|audit/i, "IA", "bg-[#d97706] text-white"],
   [/qa/i, "QA", "bg-[#16a34a] text-white"],

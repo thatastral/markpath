@@ -38,7 +38,7 @@ export default async function AppLayout({ children }: Readonly<{ children: React
 
   const sidebar = <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3 pt-14 lg:px-2 lg:pt-2">
     <WorkspaceMenu className="relative" summary={<summary className="press flex min-h-10 cursor-pointer items-center gap-2 rounded-control px-2 hover:bg-hover lg:min-h-8">
-        <span aria-hidden className={`${tile} bg-brand-solid text-white`}>{initial(active?.name ?? "Markpath")}</span>
+        <span aria-hidden className={`${tile} bg-brand-solid text-on-brand`}>{initial(active?.name ?? "Markpath")}</span>
         <span className="sb-text min-w-0 truncate text-sm font-semibold" title={active?.name ?? "Markpath"}>{active?.name ?? "Markpath"}</span>
         <ChevronDown aria-hidden className="sb-hide shrink-0 text-muted" size={14} />
         <span className="sr-only">Workspace menu</span>

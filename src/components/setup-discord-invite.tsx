@@ -24,7 +24,7 @@ export function SetupDiscordInvite() {
         <span className="text-muted" id={`${id}-help`}>Find it on your app&apos;s General Information page in the Developer Portal. The &quot;Add the bot&quot; button appears once the ID looks right.</span>
         {error && <span className="text-danger" id={`${id}-err`} role="alert">{error}</span>}
       </div>
-      {valid && <a className={`press anim-rise inline-flex min-h-10 w-fit items-center gap-1.5 rounded-control bg-brand-solid px-4 py-2 text-sm font-medium text-white hover:bg-brand-solid-hover lg:min-h-8 ${focus}`} href={discordInviteUrl(clean)} rel="noopener noreferrer" target="_blank">Add the bot to your server<ExternalIcon size={14} /><span className="sr-only">(opens in a new tab)</span></a>}
+      {valid && <a className={`press anim-rise inline-flex min-h-10 w-fit items-center gap-1.5 rounded-control bg-brand-solid px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-solid-hover lg:min-h-8 ${focus}`} href={discordInviteUrl(clean)} rel="noopener noreferrer" target="_blank">Add the bot to your server<ExternalIcon size={14} /><span className="sr-only">(opens in a new tab)</span></a>}
       <fieldset className="grid gap-2">
         <legend className="font-medium">Before you add the bot, check its settings:</legend>
         <label className="flex items-start gap-2"><input className="mt-0.5" type="checkbox" />Server Members intent is on</label>
