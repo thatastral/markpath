@@ -35,7 +35,7 @@ export function SetupStepCard({ step, children, note }: { step: SetupStep; child
   const body = <>
     <p className="text-sm text-muted">{step.why}</p>
     <dl className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-2 text-sm">
-      <div className="min-w-0 flex-1 basis-64"><dt className="inline font-medium">What you&apos;ll need: </dt><dd className="inline text-muted">{step.needs}</dd></div>
+      <div className="min-w-0 flex-1 basis-64"><dt className="inline font-medium">You&apos;ll need: </dt><dd className="inline text-muted">{step.needs}</dd></div>
       <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted"><dt className="sr-only">Time</dt><ClockIcon size={13} /><dd>{step.time}</dd></div>
     </dl>
     {note && <p className="mt-3 border-l-2 border-border-strong pl-3 text-sm text-muted">{note}</p>}
@@ -50,9 +50,9 @@ export function SetupStepCard({ step, children, note }: { step: SetupStep; child
           <SetupMarker step={step} />
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1"><h3 className="text-sm font-medium">{title}</h3>{step.optional && <span className="text-xs text-muted">Optional</span>}</span>
-            <span className="text-xs text-muted"><span className="text-success">Working:</span> {step.evidence}</span>
+            <span className="text-xs text-muted"><span className="text-success">Working.</span> {step.evidence}</span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1 text-sm text-muted group-hover:text-ink"><span className="group-open:hidden">Change</span><span className="hidden group-open:inline">Close</span><ChevronRight className="chev" size={14} /></span>
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm text-muted group-hover:text-ink"><span className="group-open:hidden">Edit</span><span className="hidden group-open:inline">Close</span><ChevronRight className="chev" size={14} /></span>
         </summary>
         <div className="px-4 pb-5 sm:pl-14 sm:pr-5">{body}</div>
       </details>

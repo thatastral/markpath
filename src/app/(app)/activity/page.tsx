@@ -18,8 +18,8 @@ export default async function ActivityPage() {
   const rows = getActivity(db, brand.id, 60);
   const days: Array<[string, typeof rows]> = []; for (const r of rows) { const k = dayKey(r.created_at); const last = days[days.length - 1]; if (last && last[0] === k) last[1].push(r); else days.push([k, [r]]); }
   return <main className="anim-rise">
-    <PageHeader description="A record of requests, approvals, changes and checks. Newest first." title="Activity" />
-    {rows.length === 0 ? <EmptyState action={<><Link className={buttonClass("primary")} href="/integrations#step-5">Set up the chat room</Link><Link className={buttonClass("secondary")} href="/issues">See issues</Link></>} icon={<ActivityIcon size={28} />} title="No activity yet">Ask the Brand Director something in your chat room and it will appear here.</EmptyState>
+    <PageHeader description="Every request, approval, change and check. Newest first." title="Activity" />
+    {rows.length === 0 ? <EmptyState action={<><Link className={buttonClass("primary")} href="/integrations#step-5">Set up the chat room</Link><Link className={buttonClass("secondary")} href="/issues">See issues</Link></>} icon={<ActivityIcon size={28} />} title="No activity yet">Ask the Brand Director something in your chat room. It shows up here.</EmptyState>
       : days.map(([day, list]) => <section aria-label={day} className="-mt-px" key={day}>
         <GroupBand as="h2" count={list.length}>{day}</GroupBand>
         <ol>{list.map((r) => <li className={rowClass} key={r.id}>
@@ -34,6 +34,6 @@ export default async function ActivityPage() {
           </div>
         </li>)}</ol>
       </section>)}
-    {rows.length === 60 && <p className="border-t border-border px-4 py-4 text-center text-xs text-muted">Showing the latest 60 entries.</p>}
+    {rows.length === 60 && <p className="border-t border-border px-4 py-4 text-center text-xs text-muted">Showing the latest <span className="tabular-nums">60</span> entries.</p>}
   </main>;
 }

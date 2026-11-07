@@ -1,13 +1,13 @@
 ---
 name: markpath-design
-description: Markpath's design language (Linear app shell and lists + AirOps cards and brand kit), tokens, motion, UX-writing and accessibility rules, with the Mobbin references behind them. Use for ANY Markpath UI work, including new or changed pages, components, layout, copy, motion, colour, dark mode, empty states, approval items, setup steps, issue lists or activity feeds in src/app or src/components. Use it even for a one-line style or wording change.
+description: Markpath's design language (Linear app shell and lists + AirOps cards and brand kit), tokens, motion, UX-writing and accessibility rules, with the Mobbin references behind them. Use for ANY Markpath UI work, including new or changed pages, components, layout, copy, motion, colour, theme, empty states, approval items, setup steps, issue lists or activity feeds in src/app or src/components. Use it even for a one-line style or wording change.
 ---
 
 # Markpath design system
 
 Markpath is a calm control room for brand operations. Four agents (Director, Design, Implementation, QA) find off-brand values in GitHub, Figma and Canva. A person approves the exact change, the agents fix it and QA checks the result. The UI has three jobs: **show what is wrong, show exactly what will change, and prove it worked.**
 
-Direction (owner-picked): **Attio-calm overall** (warm light-grey sidebar, flush white canvas, small type, almost no colour, one accent), **Attio + Gumloop for Home**, **Langdock + Attio for Integrations/onboarding**, **incident.io for empty states and the 404**, with **Linear for lists/rows/dark theme and AirOps for cards and the brand-kit table**. The app shell, navigation, lists, rows, badges and dark theme follow Linear: dense, monochrome, hairlines, one accent, keyboard-first. Overview, Brand and Integrations follow AirOps: a soft canvas, generous whitespace, rounded-xl cards with very light borders, friendly section headers and a brand-kit table with swatches.
+Direction (owner-picked): **Attio-calm overall** (warm light-grey sidebar, flush white canvas, small type, almost no colour, one accent), **Attio + Gumloop for Home**, **Langdock + Attio for Integrations/onboarding**, **incident.io for empty states and the 404**, with **Linear for lists and rows and AirOps for cards and the brand-kit table**. The app shell, navigation, lists, rows, and badges follow Linear: dense, monochrome, hairlines, one accent, keyboard-first. Overview, Brand and Integrations follow AirOps: a soft canvas, generous whitespace, rounded-xl cards with very light borders, friendly section headers and a brand-kit table with swatches.
 
 ## 1. Principles
 
@@ -20,24 +20,24 @@ Direction (owner-picked): **Attio-calm overall** (warm light-grey sidebar, flush
 
 ## 2. Tokens (`src/app/globals.css`, exposed in `tailwind.config.ts`)
 
-Colours are CSS variables, overridden under `@media (prefers-color-scheme: dark)`. Never hard-code Tailwind palette colours in components.
+**Light theme only (owner decision).** Colours are CSS variables on `:root` with `color-scheme: light`; there are no dark overrides and no `dark:` variants, so every page renders the light tokens whatever the OS setting. Never hard-code Tailwind palette colours in components.
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `canvas` | #f8f8f7 (warm grey) | #0d0e10 | sidebar and auth background |
-| `surface` | #ffffff | #151619 | the content panel, cards, menus |
-| `subtle` | #fafaf9 | #1a1b1e | list group bands, wells, code |
-| `hover` | #f0f0ee | #1f2024 | row and nav hover, selected nav item |
-| `ink` | #1d1d1f | #e6e6e8 | primary text |
-| `muted` | #6b6b6f | #9a9ca3 | secondary text, meta (4.5:1 on surface and canvas) |
-| `faint` | #a3a3a0 | #62656c | icons and unfilled severity bars only, never text |
-| `border` | #ececea | #232428 | hairlines |
-| `border-strong` | #dededb | #303136 | inputs, secondary buttons |
-| `brand` | #5e6ad2 | #8f97f2 | the single accent: links, focus ring, active marks |
-| `brand-solid` | #5e6ad2 | #5e6ad2 | primary button fill (white text) |
-| `brand-soft` | #eff0fb | #1e2036 | selected chip, needs-you step marker |
-| `success` / `warning` / `danger` | #1f7a45 / #9a5800 / #c0322a | #5ec58a / #e5a84a / #f07a72 | status dots, icons, error text |
-| `*-soft` | very light tints | very dark tints | only for inline error and value-diff pills |
+| Token | Value | Use |
+|---|---|---|
+| `canvas` | #f8f8f7 (warm grey) | sidebar and auth background |
+| `surface` | #ffffff | the content panel, cards, menus |
+| `subtle` | #fafaf9 | list group bands, wells, code |
+| `hover` | #f0f0ee | row and nav hover, selected nav item |
+| `ink` | #1d1d1f | primary text |
+| `muted` | #6b6b6f | secondary text, meta (4.5:1 on surface and canvas) |
+| `faint` | #a3a3a0 | icons and unfilled severity bars only, never text |
+| `border` | #ececea | hairlines |
+| `border-strong` | #dededb | inputs, secondary buttons |
+| `brand` | #5e6ad2 | the single accent: links, focus ring, active marks |
+| `brand-solid` | #5e6ad2 | primary button fill (white text) |
+| `brand-soft` | #eff0fb | selected chip, needs-you step marker |
+| `success` / `warning` / `danger` | #1f7a45 / #9a5800 / #c0322a | status dots, icons, error text |
+| `*-soft` | very light tints | only for inline error and value-diff pills |
 
 - **Type:** Geist Sans for UI, Geist Mono for values (`next/font/google`, `src/app/layout.tsx`). The Tailwind scale is remapped to Linear's compact sizes: `text-2xs` 11, `text-xs` 12, `text-sm` **13 (UI default and body)**, `text-base` 14, `text-lg` 16, `text-xl` 18, `text-2xl` 22, `text-3xl` 26. Weights 400, 500 and 600 only. Headings use `tracking-tight`. Counts and times use `tabular-nums`. Inputs are 16px below `sm` so iOS does not zoom.
 - **Spacing:** 4/8px grid only. Page body `px-4 sm:px-6 lg:px-8`, `py-6`. Card padding 20 (`p-5`). Section gap 32 (`mt-8`).
@@ -134,8 +134,6 @@ The owner may swap these for a picked shortlist. Replace rows here and keep the 
 | Linear | [empty customers](https://mobbin.com/screens/f2e7538e-b21c-4933-a5d2-4e4c31853e88) | centred empty state with primary + secondary action |
 | Linear | [settings general](https://mobbin.com/screens/fea37c46-ab06-4d46-86c7-333ffb0db455) | label + help left, control right, grouped in bordered blocks |
 | Linear | [notification settings](https://mobbin.com/screens/fbb07294-5214-4769-97e0-f2bd9f8cb36a) | dense setting rows with hairlines |
-| Linear | [dark issues](https://mobbin.com/screens/e142df2a-3527-499c-8f81-1b715947ac0c) | dark tokens: near-black sidebar, lifted panel, low-contrast borders |
-| Linear | [dark preferences](https://mobbin.com/screens/c968b3b2-82a5-4044-8e4a-0bec5683dec5) | dark settings blocks |
 | AirOps | [brand kit visual guidelines](https://mobbin.com/screens/fa709db6-3eba-45ef-9170-0836b887fd26) | rule table with "Applies to" tags, colour cards with hex |
 | AirOps | [brand kit type scale](https://mobbin.com/screens/f9cfcc24-5acd-46fc-b8df-487b9b949d4b) | two-column spec table in a light-bordered card |
 | AirOps | [brand kit empty region](https://mobbin.com/screens/fd111e8f-00be-4584-81b6-109b27299cbd) | large page title, tabs, friendly empty card |
@@ -150,4 +148,4 @@ The owner may swap these for a picked shortlist. Replace rows here and keep the 
 
 - Change presentation only. Keep server actions, form `name`s, hidden inputs, routes, aria attributes and `src/lib`/`src/server` untouched.
 - No new npm dependencies. Motion is CSS only.
-- Check every change with `npx tsc --noEmit`, at 320px and desktop, in light and dark.
+- Check every change with `npx tsc --noEmit`, at 320px and desktop, in the light theme (also with the OS set to dark: it must still render light).

@@ -7,7 +7,7 @@ export const severityName = (s: string) => ({ high: "High priority", medium: "Me
 const TASK: Record<string, string> = { RECEIVED: "Received", ASSESSING: "Looking into it", AUDITING: "Checking", PLAN_READY: "Plan ready", AWAITING_APPROVAL: "Waiting for approval", APPROVED: "Approved", IMPLEMENTING: "Applying the changes", VERIFYING: "Being verified", COMPLETED: "Done and verified", PARTIALLY_COMPLETED: "Partly done", FAILED: "Failed", REJECTED: "Rejected" };
 export const taskStatusName = (s: string) => TASK[s] ?? s.replaceAll("_", " ").toLowerCase();
 export const whenText = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "not yet");
-export const agentLabel = (name: string) => (name === "Figma plugin" ? "Design Agent" : name);
+export const agentLabel = (name: string) => (name === "Figma plugin" ? "Design agent" : name);
 /** A Canva design id, which is all the Canva connector gives back (no title). */
 export const isCanvaId = (name: string) => /^DA[A-Za-z0-9_-]{8,}$/.test(name);
 const kindOf = (kind?: string | null) => { const k = (kind ?? "").toLowerCase().split(/[_:-]/)[0]; return k === "gh" ? "github" : k; };
@@ -22,7 +22,7 @@ export function resourceLabel(kind: string | null | undefined, name: string): st
 }
 /** Free text from agents can mention a bare Canva id; name it as a Canva design. Needs a lowercase letter so words like "DASHBOARDS" are left alone; ids inside URLs are left alone too. */
 export const withCanvaLabels = (text: string) => text.replace(/(?:Canva design )?["“]?(?<![\w/])(DA(?=[\w-]*[a-z])[A-Za-z0-9_-]{8,})(?![\w-])["”]?/g, (_m, id: string) => `Canva design ${id}`);
-export const connectionLabel = (status: string) => ({ connected: "Connected", configured: "Set up, waiting for the first read", not_connected: "Not connected", disabled: "Not set up", error: "Needs attention" } as Record<string, string>)[status] ?? status.replaceAll("_", " ");
+export const connectionLabel = (status: string) => ({ connected: "Connected", configured: "Saved, not read yet", not_connected: "Not connected", disabled: "Not set up", error: "Needs attention" } as Record<string, string>)[status] ?? status.replaceAll("_", " ");
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const NOUN: Record<string, [string, string]> = { colour: ["colour", "colours"], typeface: ["font", "fonts"], radius: ["corner radius", "corner radii"] };
@@ -35,10 +35,10 @@ export function describeApproval(approvedAction: string, resourceName: string, r
   try { const p = JSON.parse(approvedAction) as { operation?: string; payload?: { changes?: ApprovalChange[] } }; operation = p.operation ?? ""; changes = p.payload?.changes ?? []; } catch { /* shown as a generic operation */ }
   const list = changes.map((c) => { const [one, many] = NOUN[c.property] ?? [c.property, `${c.property}s`]; return `${plural(c.count, one, many)} from ${c.from} to ${c.to}`; });
   const joined = list.length > 1 ? `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}` : list[0] ?? "";
-  if (operation === "apply_in_figma_plugin") return { kind: "figma", target: resourceName, heading: `Update the ${resourceLabel("figma", resourceName)}`, summary: joined ? `Change ${joined}.` : "Update outdated brand values.", changes, whatHappens: `The Design agent edits the real Figma file through the Figma connector and changes only the values listed here. Figma keeps version history if you ever need to go back.` };
-  if (operation === "apply_in_canva_mcp") return { kind: "canva", target: resourceName, heading: `Update the ${resourceLabel("canva", resourceName)}`, summary: joined ? `Change ${joined}.` : "Update outdated brand colours.", changes, whatHappens: `The Design agent edits the real Canva design through the Canva connector and changes only the colours listed here, not the wording, fonts or layout. Canva keeps version history.` };
-  if (resourceRef?.startsWith("gh:")) return { kind: "github", target: resourceName, heading: `Open a pull request in ${resourceName}`, summary: "Update the old brand colour, font and corner radius to the approved values.", changes, whatHappens: "Markpath opens a pull request for you to review. It never merges it and never touches the main branch." };
-  if (operation === "replace_tokens" || operation === "replace_values") return { kind: "sample", target: resourceName, heading: `Fix the built-in sample "${resourceName}"`, summary: "Update the old brand colour, font and corner radius to the approved values.", changes, whatHappens: "This is the built-in sample. The change is simulated locally and nothing real is edited." };
+  if (operation === "apply_in_figma_plugin") return { kind: "figma", target: resourceName, heading: `Update the ${resourceLabel("figma", resourceName)}`, summary: joined ? `Change ${joined}.` : "Update outdated brand values.", changes, whatHappens: `The Design agent edits the real Figma file and changes only the values listed here. Figma keeps version history if you need to go back.` };
+  if (operation === "apply_in_canva_mcp") return { kind: "canva", target: resourceName, heading: `Update the ${resourceLabel("canva", resourceName)}`, summary: joined ? `Change ${joined}.` : "Update outdated brand colours.", changes, whatHappens: `The Design agent edits the real Canva design and changes only the colours listed here, not the wording, fonts or layout. Canva keeps version history.` };
+  if (resourceRef?.startsWith("gh:")) return { kind: "github", target: resourceName, heading: `Open a pull request in ${resourceName}`, summary: "Update the old brand colour, font and corner radius to the approved values.", changes, whatHappens: "Markpath opens a pull request for you to review. It never merges it and never touches your main branch." };
+  if (operation === "replace_tokens" || operation === "replace_values") return { kind: "sample", target: resourceName, heading: `Fix the built-in sample "${resourceName}"`, summary: "Update the old brand colour, font and corner radius to the approved values.", changes, whatHappens: "This is the built-in sample. The change is simulated and nothing real is edited." };
   return { kind: "other", target: resourceName, heading: resourceLabel(resourceRef, resourceName), summary: operation ? `Run ${operation.replaceAll("_", " ")}.` : "Apply an approved change.", changes, whatHappens: "Only this exact change is applied." };
 }
 

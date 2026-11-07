@@ -22,8 +22,8 @@ export function AppShell({ sidebar, workspace, children }: Readonly<{ sidebar: R
   const shut = () => { setOpenAt(null); button.current?.focus(); };
   return <>
     <div className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-surface px-2 lg:hidden">
-      <button aria-controls={id} aria-expanded={open} className="inline-flex min-h-10 items-center gap-2 rounded-control px-2.5 text-sm font-medium text-ink hover:bg-hover" onClick={() => setOpenAt(open ? null : path)} ref={button} type="button"><MenuIcon />Menu</button>
-      <span className="ml-auto flex min-w-0 items-center gap-2 pr-2 text-sm font-medium"><Logo size="sm" /><span className="truncate">{workspace ?? "Markpath"}</span></span>
+      <button aria-controls={id} aria-expanded={open} className="press inline-flex min-h-10 items-center gap-2 rounded-control px-2.5 text-sm font-medium text-ink hover:bg-hover" onClick={() => setOpenAt(open ? null : path)} ref={button} type="button"><MenuIcon />Menu</button>
+      <span className="ml-auto flex min-w-0 items-center gap-2 pr-2 text-sm font-medium"><Logo size="sm" /><span className="truncate" title={workspace ?? "Markpath"}>{workspace ?? "Markpath"}</span></span>
     </div>
     {open && <div aria-hidden className="anim-fade fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={shut} />}
     <aside className={`${open ? "anim-slide flex" : "hidden"} fixed inset-y-0 left-0 z-50 w-[17rem] max-w-[85vw] flex-col border-r border-border bg-canvas shadow-pop lg:flex lg:w-60 lg:border-0 lg:shadow-none lg:[animation:none]`} id={id}>

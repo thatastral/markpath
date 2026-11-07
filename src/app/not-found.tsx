@@ -10,7 +10,7 @@ export default function NotFound() {
       <EmptyArt icon={<SearchIcon />} label="404" />
       <h1 className="mt-6 text-base font-semibold tracking-tight">We can&apos;t find that page</h1>
       <p className="mt-1 text-sm text-muted">The link may be old, or the item may belong to a different workspace.</p>
-      <div className="mt-5 flex flex-wrap justify-center gap-2"><Link className={buttonClass("primary")} href="/">Go to your overview</Link><Link className={buttonClass("secondary")} href="/issues">See issues</Link></div>
+      <div className="mt-5 flex flex-wrap justify-center gap-2"><Link className={buttonClass("primary")} href="/">Go to Overview</Link><Link className={buttonClass("secondary")} href="/issues">See issues</Link></div>
     </div>
   </main>;
 }

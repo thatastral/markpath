@@ -9,26 +9,26 @@ function returnToBrand(message?: string) { redirect(`/brand${message ? `?message
 
 export async function extractFixture(brandId: string) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
-  await ingestFixtureGuideline(brandId, userId); revalidatePath("/brand"); returnToBrand("Fixture guideline extracted for review.");
+  await ingestFixtureGuideline(brandId, userId); revalidatePath("/brand"); returnToBrand("Sample loaded. Review the rules below, then approve them.");
 }
 
 export async function uploadGuideline(brandId: string, formData: FormData) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
   const file = formData.get("guideline");
   if (!(file instanceof File)) { returnToBrand("Choose a Markdown guideline to upload."); return; }
-  try { await ingestGuidelineUpload(brandId, userId, file); } catch (error) { returnToBrand(error instanceof Error ? error.message : "Guideline upload failed."); }
-  revalidatePath("/brand"); returnToBrand("Guideline extracted for review.");
+  try { await ingestGuidelineUpload(brandId, userId, file); } catch (error) { returnToBrand(error instanceof Error ? error.message : "That guideline couldn't be read. Upload a Markdown (.md) file."); }
+  revalidatePath("/brand"); returnToBrand("Guideline read. Review the rules below, then approve them.");
 }
 
 export async function approveVersion(brandId: string, versionId: string) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
-  await approveSpec(brandId, userId, versionId); revalidatePath("/brand"); revalidatePath("/"); returnToBrand("Brand specification approved and activated.");
+  await approveSpec(brandId, userId, versionId); revalidatePath("/brand"); revalidatePath("/"); returnToBrand("Rules approved. The agents now check against this version.");
 }
 
 export async function uploadLogo(brandId: string, formData: FormData) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
   const file = formData.get("logo");
   if (!(file instanceof File)) { returnToBrand("Choose a logo image to upload."); return; }
-  try { await saveBrandLogo(brandId, userId, file); } catch (error) { returnToBrand(error instanceof Error ? error.message : "Logo upload failed."); }
-  revalidatePath("/brand"); returnToBrand("Reference logo saved. Reviews will compare logos in designs against it.");
+  try { await saveBrandLogo(brandId, userId, file); } catch (error) { returnToBrand(error instanceof Error ? error.message : "That logo couldn't be saved. Try a PNG, JPG or WebP under 1 MB."); }
+  revalidatePath("/brand"); returnToBrand("Logo saved. Reviews now compare logos in your designs with it.");
 }

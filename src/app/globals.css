@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Markpath tokens: Attio-calm shell, Linear structure, AirOps cards. Source of truth: .claude/skills/markpath-design/SKILL.md */
+/* Markpath tokens: Attio-calm shell, Linear structure, AirOps cards. Light theme only, whatever the OS setting.
+   Source of truth: .claude/skills/markpath-design/SKILL.md */
 :root {
   color-scheme: light;
   --color-canvas: #f8f8f7;
@@ -54,32 +55,6 @@
   --motion-entry-duration: var(--duration-normal);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --color-canvas: #0d0e10;
-    --color-surface: #151619;
-    --color-subtle: #1a1b1e;
-    --color-hover: #1f2024;
-    --color-ink: #e6e6e8;
-    --color-muted: #9a9ca3;
-    --color-faint: #62656c;
-    --color-border: #232428;
-    --color-border-strong: #303136;
-    --color-brand: #8f97f2;
-    --color-brand-solid: #5e6ad2;
-    --color-brand-solid-hover: #6b76dc;
-    --color-brand-soft: #1e2036;
-    --color-success: #5ec58a;
-    --color-success-soft: #13221a;
-    --color-warning: #e5a84a;
-    --color-warning-soft: #261e11;
-    --color-danger: #f07a72;
-    --color-danger-soft: #2a1716;
-    --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.7), 0 0 0 1px var(--color-border);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   :root {
     --motion-rise: 0px;
@@ -90,7 +65,7 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--color-canvas); -webkit-text-size-adjust: 100%; }
+html { color-scheme: light; background: var(--color-canvas); -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   color: var(--color-ink);
@@ -126,7 +101,10 @@ input[type="file"]::file-selector-button {
   background: var(--color-surface); color: var(--color-ink); font-weight: 500;
   transition: background-color var(--duration-xshort) var(--ease-out-quad);
 }
-input[type="file"]::file-selector-button:hover { background: var(--color-hover); }
+@media (hover: hover) and (pointer: fine) {
+  input[type="file"]::file-selector-button:hover { background: var(--color-hover); }
+}
+input[type="file"]::file-selector-button:active { transform: scale(var(--motion-press)); }
 input::placeholder { color: var(--color-muted); opacity: 0.75; }
 
 /* Focus: instant, never removed. */
@@ -141,6 +119,14 @@ button, a, summary, input, select {
 }
 button:not(:disabled):active, .press:active { transform: scale(var(--motion-press)); }
 button:disabled { cursor: not-allowed; }
+button[aria-busy="true"] { cursor: progress; }
+/* No grey tap flash or double-tap zoom delay on touch; the press scale is the feedback. */
+button, a, summary, label, [role="tab"] { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+/* Rows that are links get the same quiet press as buttons. */
+a.row-link:active { background-color: var(--color-hover); }
+
+/* Times and counts never jitter as digits change. */
+time { font-variant-numeric: tabular-nums; }
 
 /* Entry: fade + 4px rise, once per navigation. */
 @keyframes mp-rise { from { opacity: 0; transform: translateY(var(--motion-rise)); } to { opacity: 1; transform: none; } }

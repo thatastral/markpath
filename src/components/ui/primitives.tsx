@@ -13,7 +13,7 @@ const variants: Record<ButtonVariant, string> = {
 /** Class string for a button-looking element (works on <button>, <a> and <Link>). 40px on touch, 32/28px on desktop. */
 export function buttonClass(variant: ButtonVariant = "secondary", size: "md" | "sm" = "md", extra = "") {
   const sizing = size === "md" ? "min-h-10 px-3 lg:min-h-8" : "min-h-10 px-2.5 lg:min-h-7";
-  return `inline-flex max-w-full select-none items-center justify-center gap-1.5 rounded-control text-center text-sm font-medium leading-5 disabled:opacity-50 ${sizing} ${variants[variant]} ${extra}`.trim();
+  return `press inline-flex max-w-full select-none items-center justify-center gap-1.5 rounded-control text-center text-sm font-medium leading-5 disabled:opacity-50 ${sizing} ${variants[variant]} ${extra}`.trim();
 }
 
 /** A text link in the accent colour with a 40px hit area on touch. */
@@ -74,7 +74,7 @@ export function SectionHeading({ id, title, count, description, action }: { id?:
 /** Linear group band: icon, name and count over a list of rows. */
 export function GroupBand({ icon, children, count, action, as: Tag = "div" }: { icon?: ReactNode; children: ReactNode; count?: number; action?: ReactNode; as?: "div" | "h2" | "h3" }) {
   return <Tag className="flex min-h-9 items-center gap-2 border-y border-border bg-subtle px-4 text-sm font-medium sm:px-6 lg:px-8">
-    {icon && <span aria-hidden className="text-muted">{icon}</span>}<span className="min-w-0 truncate">{children}</span>{count !== undefined && <span className="tabular-nums text-muted">{count}</span>}
+    {icon && <span aria-hidden className="text-muted">{icon}</span>}<span className="min-w-0 truncate" title={typeof children === "string" ? children : undefined}>{children}</span>{count !== undefined && <span className="tabular-nums text-muted">{count}</span>}
     {action && <span className="ml-auto">{action}</span>}
   </Tag>;
 }
@@ -115,7 +115,7 @@ const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 export const isHex = (v: string | null | undefined): v is string => Boolean(v && HEX.test(v.trim()));
 
 export function Swatch({ value, className = "" }: { value: string; className?: string }) {
-  return <span aria-hidden className={`inline-block h-3 w-3 shrink-0 rounded-[3px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)] ${className}`} style={{ backgroundColor: value.trim() }} />;
+  return <span aria-hidden className={`inline-block h-3 w-3 shrink-0 rounded-[3px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] ${className}`} style={{ backgroundColor: value.trim() }} />;
 }
 
 /** A raw brand value (colour, font, radius) as a mono pill, with a swatch for colours. */

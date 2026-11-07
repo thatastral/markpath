@@ -14,9 +14,9 @@ export function SetupOverview({ setup }: { setup: SetupData }) {
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pb-4 pt-4 sm:px-5">
         <div className="min-w-0">
           <h2 className="text-base font-semibold tracking-tight" id="setup-heading">Finish setting up</h2>
-          <p className="text-sm text-muted"><span className="tabular-nums">{done} of {required.length}</span> needed steps done</p>
+          <p className="text-sm text-muted"><span className="tabular-nums">{done} of {required.length}</span> steps done</p>
         </div>
-        <Link className={`${linkClass} text-sm ${setupUi.focus}`} href="/integrations">Open setup<ChevronRight size={14} /></Link>
+        <Link className={`${linkClass} text-sm ${setupUi.focus}`} href="/integrations">Continue setup<ChevronRight size={14} /></Link>
         <div className="w-full"><Progress label="Setup progress" max={required.length} value={done} /></div>
       </div>
       <ol className="border-t border-border">

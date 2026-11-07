@@ -18,13 +18,13 @@ export default async function OverviewPage() {
   if (!userId) redirect("/login");
   const db = getDatabase(); initializeSchema(db);
   const brand = await activeBrandForUser(db, userId);
-  if (!brand) return <main className="anim-rise"><PageHeader title="Welcome to Markpath" /><EmptyState action={<Link className={buttonClass("primary")} href="/workspaces/new">Create a workspace</Link>} icon={<ShieldIcon size={28} />} title="Create your first workspace">A workspace holds one brand: its rules, connections, chat room and history.</EmptyState></main>;
+  if (!brand) return <main className="anim-rise"><PageHeader title="Welcome to Markpath" /><EmptyState action={<Link className={buttonClass("primary")} href="/workspaces/new">Create a workspace</Link>} icon={<ShieldIcon size={28} />} title="Create your first workspace">A workspace holds one brand: its rules, tools, chat room and history.</EmptyState></main>;
   const integrations = listIntegrations(db, brand.id); const overview = getOverviewData(db, brand.id); const roomReplies = switchRoomReplyCount(db, brand.id); const gh = getGithubConfig(brand.id);
   const setup = await getSetupData(db, brand.id, userId);
   const metrics: Array<[string, number, string, string]> = [["Open issues", overview.findingCount, "/issues", "See the issues"], ["High priority", overview.criticalOrHighCount, "/issues?severity=high", "See high priority"], ["Waiting for approval", overview.pendingApprovalCount, "/issues", "Review and approve"], ["Fixes verified", overview.completedTaskCount, "/activity", "See what was done"]];
   const toolText = (provider: string, status: string, mode: string) => {
-    if (provider === "switch") return roomReplies > 0 ? "Connected: agents have answered in your room" : "Not verified yet: no agent has answered in the room";
-    if (provider === "github") return status === "connected" && gh?.repo ? `Connected to ${gh.repo}` : status === "connected" ? "Signed in, no repository chosen yet" : "Not connected";
+    if (provider === "switch") return roomReplies > 0 ? "Connected. Agents reply in your room" : "Waiting for the first agent reply";
+    if (provider === "github") return status === "connected" && gh?.repo ? `Connected to ${gh.repo}` : status === "connected" ? "Signed in. Choose a repository" : "Not connected";
     if (provider === "canva" && mode !== "mcp") return "Not set up";
     return connectionLabel(status);
   };
@@ -48,11 +48,11 @@ export default async function OverviewPage() {
 
     <section aria-labelledby="decide-heading" className="mt-10">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/issues">All issues<ChevronRight size={14} /></Link>} count={overview.pendingApprovalCount} id="decide-heading" title="Needs your decision" />
-      {byTask.size === 0 ? <div className={`mt-3 ${cardClass}`}><p className="flex items-center gap-3 px-4 py-4 text-sm text-muted"><StatusIcon kind="done" />Nothing is waiting for you. Changes appear here when an agent asks for approval.</p></div>
-        : <ul className={`mt-3 divide-y divide-border overflow-hidden ${cardClass}`}>{[...byTask.entries()].map(([taskId, items]) => <li key={taskId}><Link className="flex min-h-12 items-center gap-3 px-4 py-3 hover:bg-hover" href={`/approve/${taskId}`}>
+      {byTask.size === 0 ? <div className={`mt-3 ${cardClass}`}><p className="flex items-center gap-3 px-4 py-4 text-sm text-muted"><StatusIcon kind="done" />Nothing needs your decision. Changes show up here when an agent asks you to approve.</p></div>
+        : <ul className={`mt-3 divide-y divide-border overflow-hidden ${cardClass}`}>{[...byTask.entries()].map(([taskId, items]) => <li key={taskId}><Link className="row-link flex min-h-12 items-center gap-3 px-4 py-3 hover:bg-hover" href={`/approve/${taskId}`}>
           <StatusIcon kind="waiting" />
-          <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{describeApproval(items[0].approved_action, items[0].resource_name, items[0].resource_ref).heading}{items.length > 1 ? ` and ${items.length - 1} more` : ""}</span><span className="block text-xs text-muted">Brand Director asked {whenText(items[0].created_at)}</span></span>
-          <span className={buttonClass("primary", "sm")}>Review</span>
+          <span className="min-w-0 flex-1">{(() => { const t = `${describeApproval(items[0].approved_action, items[0].resource_name, items[0].resource_ref).heading}${items.length > 1 ? ` and ${items.length - 1} more` : ""}`; return <span className="block truncate text-sm font-medium" title={t}>{t}</span>; })()}<span className="block text-xs text-muted">Brand Director asked {whenText(items[0].created_at)}</span></span>
+          <span aria-hidden className={buttonClass("primary", "sm")}>Review</span>
         </Link></li>)}</ul>}
     </section>
 
@@ -60,7 +60,7 @@ export default async function OverviewPage() {
 
     <section aria-labelledby="recent-heading" className="mt-10">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/activity">See all<ChevronRight size={14} /></Link>} id="recent-heading" title="Recent activity" />
-      {overview.recentActivity.length === 0 ? <div className="mt-3"><EmptyState action={<Link className={buttonClass("secondary")} href="/integrations#step-5">Set up the chat room</Link>} framed icon={<ActivityIcon size={28} />} title="Nothing yet">Once the agents start working in your chat room, you will see it here.</EmptyState></div>
+      {overview.recentActivity.length === 0 ? <div className="mt-3"><EmptyState action={<Link className={buttonClass("secondary")} href="/integrations#step-5">Set up the chat room</Link>} framed icon={<ActivityIcon size={28} />} title="No activity yet">Agent work shows up here once your chat room is set up.</EmptyState></div>
         : <ul className={`mt-3 divide-y divide-border overflow-hidden ${cardClass}`}>{overview.recentActivity.map((e) => <li className="flex min-h-11 items-start gap-3 px-4 py-2.5" key={e.id}>
           <span className="mt-px"><AgentAvatar name={e.agent_name} /></span>
           <div className="flex min-w-0 flex-1 flex-col gap-x-4 gap-y-0.5 sm:flex-row sm:items-baseline sm:justify-between">
@@ -74,7 +74,7 @@ export default async function OverviewPage() {
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/integrations">Manage<ChevronRight size={14} /></Link>} id="tools-heading" title="Your tools" />
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">{integrations.map((i) => <li className={`flex min-h-14 items-center gap-3 ${cardClass} px-4 py-3`} key={i.provider}>
         <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-border text-ink"><ProviderIcon provider={i.provider} size={16} /></span>
-        <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{providerName(i.provider)}</span><span className="block truncate text-xs text-muted">{toolText(i.provider, i.connection_status, i.mode)}</span></span>
+        <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{providerName(i.provider)}</span><span className="block truncate text-xs text-muted" title={toolText(i.provider, i.connection_status, i.mode)}>{toolText(i.provider, i.connection_status, i.mode)}</span></span>
         <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot[toolTone(i.provider, i.connection_status)]}`} />
       </li>)}</ul>
     </section>

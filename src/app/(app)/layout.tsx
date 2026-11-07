@@ -10,6 +10,7 @@ import { getSetupData, type SetupData } from "@/server/dashboard/setup";
 import { MainNav } from "@/components/main-nav";
 import { AppShell } from "@/components/header-menu";
 import { CheckIcon, ChevronDown, LogoutIcon, PlusIcon } from "@/components/ui/icons";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { logout, switchWorkspace } from "./actions";
 
 const tile = "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-2xs font-semibold";
@@ -31,16 +32,16 @@ export default async function AppLayout({ children }: Readonly<{ children: React
 
   const sidebar = <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto px-3 pb-3 pt-14 lg:px-2 lg:pt-2">
     <details className="relative">
-      <summary className="flex min-h-10 cursor-pointer items-center gap-2 rounded-control px-2 hover:bg-hover lg:min-h-8">
+      <summary className="press flex min-h-10 cursor-pointer items-center gap-2 rounded-control px-2 hover:bg-hover lg:min-h-8">
         <span aria-hidden className={`${tile} bg-brand-solid text-white`}>{initial(active?.name ?? "Markpath")}</span>
-        <span className="min-w-0 truncate text-sm font-semibold">{active?.name ?? "Markpath"}</span>
+        <span className="min-w-0 truncate text-sm font-semibold" title={active?.name ?? "Markpath"}>{active?.name ?? "Markpath"}</span>
         <ChevronDown aria-hidden className="shrink-0 text-muted" size={14} />
         <span className="sr-only">Workspace menu</span>
       </summary>
       <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-panel border border-border bg-surface p-1 shadow-pop">
         <p className="px-2 pb-1 pt-1.5 text-2xs font-medium text-muted">Workspaces</p>
         {brands.length > 1
-          ? <form action={switchWorkspace}>{brands.map((b) => <button className={menuRow} key={b.id} name="brandId" type="submit" value={b.id}><span aria-hidden className={`${tile} bg-hover text-muted`}>{initial(b.name)}</span><span className="min-w-0 flex-1 truncate">{b.name}</span>{b.id === active?.id && <CheckIcon className="text-ink" size={14} />}<span className="sr-only">{b.id === active?.id ? " (current)" : ", switch to this workspace"}</span></button>)}</form>
+          ? <form action={switchWorkspace}>{brands.map((b) => <button className={menuRow} key={b.id} name="brandId" type="submit" value={b.id}><span aria-hidden className={`${tile} bg-hover text-muted`}>{initial(b.name)}</span><span className="min-w-0 flex-1 truncate" title={b.name}>{b.name}</span>{b.id === active?.id && <CheckIcon className="text-ink" size={14} />}<span className="sr-only">{b.id === active?.id ? " (current)" : ", switch to this workspace"}</span></button>)}</form>
           : active && <p className={menuRow}><span aria-hidden className={`${tile} bg-hover text-muted`}>{initial(active.name)}</span><span className="min-w-0 flex-1 truncate">{active.name}</span><CheckIcon className="text-ink" size={14} /></p>}
         <div className="my-1 border-t border-border" />
         <Link className={`${menuRow} text-muted hover:text-ink`} href="/workspaces/new"><PlusIcon size={14} />New workspace</Link>
@@ -48,14 +49,14 @@ export default async function AppLayout({ children }: Readonly<{ children: React
     </details>
     <MainNav pending={pending} />
     <div className="mt-auto grid gap-3">
-    {setup && setup.requiredLeft > 0 && <Link className="block rounded-panel border border-border bg-surface px-3 py-2.5 hover:border-border-strong" href="/integrations">
+    {setup && setup.requiredLeft > 0 && <Link className="press block rounded-panel border border-border bg-surface px-3 py-2.5 hover:border-border-strong" href="/integrations">
       <span className="flex items-center justify-between gap-2 text-sm font-medium">Getting started<span className="text-xs font-normal tabular-nums text-muted">{doneSteps}/{required}</span></span>
-      <span className="mt-0.5 block text-xs text-muted">{Math.round((doneSteps / Math.max(1, required)) * 100)}% done. Next: {setup.steps.find((s) => s.status !== "done" && !s.optional)?.title ?? "finish setup"}</span>
+      <span className="mt-0.5 block truncate text-xs text-muted"><span className="tabular-nums">{Math.round((doneSteps / Math.max(1, required)) * 100)}%</span> done. Next: {setup.steps.find((s) => s.status !== "done" && !s.optional)?.title ?? "finish setup"}</span>
       <span aria-hidden className="mt-2 block h-1 overflow-hidden rounded-full bg-hover"><span className="progress-fill block h-full w-full rounded-full bg-brand-solid" style={{ transform: `scaleX(${doneSteps / Math.max(1, required)})` }} /></span>
     </Link>}
     <div className="grid gap-px border-t border-border pt-3">
-      <p className="flex min-h-10 items-center gap-2 px-2 lg:min-h-8"><span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-hover text-2xs font-semibold text-muted ring-1 ring-inset ring-border-strong">{initial(user.name || user.email)}</span><span className="min-w-0 truncate text-sm"><span className="sr-only">Signed in as </span>{user.name || user.email}</span></p>
-      <form action={logout}><button className={`${menuRow} text-muted hover:text-ink`} type="submit"><LogoutIcon size={16} />Sign out</button></form>
+      <p className="flex min-h-10 items-center gap-2 px-2 lg:min-h-8"><span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-hover text-2xs font-semibold text-muted ring-1 ring-inset ring-border-strong">{initial(user.name || user.email)}</span><span className="min-w-0 truncate text-sm" title={user.email}><span className="sr-only">Signed in as </span>{user.name || user.email}</span></p>
+      <form action={logout}><SubmitButton className={`${menuRow} text-muted hover:text-ink`} pendingLabel="Signing out…"><LogoutIcon size={16} />Sign out</SubmitButton></form>
     </div>
     </div>
   </div>;

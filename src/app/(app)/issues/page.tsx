@@ -9,6 +9,7 @@ import { describeApproval, groupFindings, providerName, resourceLabel, ruleName,
 import { AgentAvatar, Badge, buttonClass, cardClass, ChangeArrow, Count, EmptyState, GroupBand, PageHeader, rowClass, SectionHeading, SeverityIcon, severityTone, StatusIcon, ValuePill } from "@/components/ui/primitives";
 import { CheckIcon, ChevronRight, InboxIcon, ProviderIcon, SearchIcon } from "@/components/ui/icons";
 import { ChangeList } from "@/components/ui/change-list";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { decideTask } from "../approve/[taskId]/actions";
 import { decideDashboardApproval } from "./actions";
 
@@ -35,7 +36,7 @@ export default async function IssuesPage({ searchParams }: PageProps) {
 
   const pad = "px-4 sm:px-6 lg:px-8";
   return <main className="anim-rise">
-    <PageHeader description="Open issues across your connected tools, and the changes waiting for your decision. Nothing is changed until you approve it here or by replying in the chat room." title="Issues & approvals" />
+    <PageHeader description="Off-brand values in your tools, and fixes waiting for you. Nothing changes until you approve it here or in the chat room." title="Issues & approvals" />
 
     {pending.length > 0 && <section aria-labelledby="waiting" className={`${pad} border-b border-border py-6`}>
       <SectionHeading count={pending.length} description="Approve here, or reply “approve” to the Brand Director in the chat room." id="waiting" title="Waiting for your approval" />
@@ -46,9 +47,9 @@ export default async function IssuesPage({ searchParams }: PageProps) {
           <h3 className="text-base font-semibold tracking-tight">{v.heading}</h3><p className="text-sm">{v.summary}</p>
           {v.changes.length > 0 && <ChangeList changes={v.changes} />}
           <p className="text-sm text-muted">{v.whatHappens}</p>
-          {items.length === 1 && <div className="mt-1 flex flex-wrap gap-2"><form action={decideDashboardApproval.bind(null, a.id, "approved")}><button className={primary} type="submit"><CheckIcon size={14} />Approve these changes</button></form><form action={decideDashboardApproval.bind(null, a.id, "rejected")}><button className={secondary} type="submit">Reject</button></form></div>}
+          {items.length === 1 && <div className="mt-1 flex flex-wrap gap-2"><form action={decideDashboardApproval.bind(null, a.id, "approved")}><SubmitButton className={primary} pendingLabel="Approving…"><CheckIcon size={14} />Approve changes</SubmitButton></form><form action={decideDashboardApproval.bind(null, a.id, "rejected")}><SubmitButton className={secondary} pendingLabel="Rejecting…">Reject</SubmitButton></form></div>}
         </article>; })}</div>
-        {items.length > 1 && <form action={decideTask} className="flex flex-wrap gap-2 border-t border-border bg-subtle px-4 py-3 sm:px-5"><input name="taskId" type="hidden" value={taskId} /><button className={primary} name="decision" type="submit" value="approved"><CheckIcon size={14} />Approve all {items.length} changes</button><button className={secondary} name="decision" type="submit" value="rejected">Reject all</button></form>}
+        {items.length > 1 && <form action={decideTask} className="flex flex-wrap gap-2 border-t border-border bg-subtle px-4 py-3 sm:px-5"><input name="taskId" type="hidden" value={taskId} /><SubmitButton className={primary} name="decision" pendingLabel="Approving…" value="approved"><CheckIcon size={14} />Approve all <span className="tabular-nums">{items.length}</span> changes</SubmitButton><SubmitButton className={secondary} name="decision" pendingLabel="Rejecting…" value="rejected">Reject all</SubmitButton></form>}
       </div>)}</div>
     </section>}
 
@@ -59,8 +60,8 @@ export default async function IssuesPage({ searchParams }: PageProps) {
         {groups.length > 0 && <p className="ml-auto text-xs text-muted"><span className="tabular-nums">{groups.length}</span> {groups.length === 1 ? "issue" : "issues"} in <span className="tabular-nums">{totalPlaces}</span> {totalPlaces === 1 ? "place" : "places"}</p>}
       </div>
       {groups.length === 0 ? (filtered
-        ? <EmptyState action={<Link className={buttonClass("secondary")} href="/issues">Clear filters</Link>} icon={<SearchIcon size={28} />} title="No open issues match this filter">Try another filter, or clear it to see everything.</EmptyState>
-        : <EmptyState action={<><Link className={buttonClass("primary")} href="/integrations">Run a check</Link><Link className={buttonClass("secondary")} href="/reviews">See reviews</Link></>} icon={<InboxIcon size={28} />} title="No open issues">Ask the Brand Director in your chat room to check your designs and code, or paste a link and ask “is this on brand?”.</EmptyState>)
+        ? <EmptyState action={<Link className={buttonClass("secondary")} href="/issues">Clear filters</Link>} icon={<SearchIcon size={28} />} title="No issues match this filter">Try another filter, or clear it to see everything.</EmptyState>
+        : <EmptyState action={<><Link className={buttonClass("primary")} href="/integrations#step-6">Run a check</Link><Link className={buttonClass("secondary")} href="/reviews">See reviews</Link></>} icon={<InboxIcon size={28} />} title="No open issues">Ask the Brand Director in your chat room to check your brand, or paste a link and ask “is this on brand?”</EmptyState>)
         : [...byProvider.entries()].map(([provider, list]) => <section aria-label={providerName(provider === "other" ? null : provider)} className="-mt-px" key={provider}>
           <GroupBand count={list.length} icon={<ProviderIcon provider={provider} size={14} />}>{providerName(provider === "other" ? null : provider)}</GroupBand>
           <ul>{list.map((g) => {
@@ -75,7 +76,7 @@ export default async function IssuesPage({ searchParams }: PageProps) {
                 </div>
                 {person ? <p className="mt-1 text-sm">{g.detected} <span className="text-muted">Expected: {g.expected}</span></p>
                   : <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"><span className="text-muted">{g.count === 1 ? "1 place uses" : `${g.count} places use`}</span>{g.detected && <ValuePill tone="old" value={g.detected} />}<ChangeArrow /><span className="sr-only">It should be</span>{g.expected && <ValuePill tone="new" value={g.expected} />}</p>}
-                {g.confidence < 1 && <p className="mt-1 text-xs text-muted">Confidence {Math.round(g.confidence * 100)}%. A person should check this.</p>}
+                {g.confidence < 1 && <p className="mt-1 text-xs text-muted">Markpath is <span className="tabular-nums">{Math.round(g.confidence * 100)}%</span> sure. Check this one yourself.</p>}
                 {person && <p className="mt-1 text-xs text-muted">{g.recommended}</p>}
                 {g.places.length > 0 && <details className="text-sm"><summary className="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-control text-xs font-medium text-muted hover:text-ink lg:min-h-7"><ChevronRight className="chev" size={12} />Show {g.places.length === 1 ? "where" : `the ${g.places.length} places`}</summary><ul className="mb-1 ml-1.5 grid gap-0.5 border-l border-border pl-3 font-mono text-xs text-muted">{g.places.map((p) => <li key={p}>{p}</li>)}</ul></details>}
               </div>

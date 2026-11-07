@@ -21,9 +21,9 @@ export async function saveChatHandle(formData: FormData) {
   const brand = await activeBrandForUser(db, userId); if (!brand) redirect("/");
   const owner = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(userId, brand.id) as { role: string } | undefined;
   if (owner?.role !== "owner") return;
-  const parsed = handle.safeParse(formData.get("handle")); if (!parsed.success) return problem("Enter your chat handle, for example your Discord, Slack or Telegram username.");
+  const parsed = handle.safeParse(formData.get("handle")); if (!parsed.success) return problem("Enter your chat username, like your Discord, Slack or Telegram name.");
   db.transaction(() => { db.prepare("DELETE FROM chat_identities WHERE brand_id = ? AND user_id = ?").run(brand.id, userId); db.prepare("INSERT OR REPLACE INTO chat_identities (id, brand_id, user_id, handle, created_at) VALUES (?, ?, ?, ?, ?)").run(randomUUID(), brand.id, userId, parsed.data, new Date().toISOString()); })();
-  revalidatePath("/integrations"); revalidatePath("/"); done("Chat handle saved.");
+  revalidatePath("/integrations"); revalidatePath("/"); done("Username saved. You can now approve by replying in the chat room.");
 }
 
 const prefix = z.string().trim().toLowerCase().regex(/^[a-z][a-z0-9-]{0,19}$/, "Use lowercase letters, numbers and dashes, starting with a letter.");
@@ -33,9 +33,9 @@ export async function saveTeamPrefix(formData: FormData) {
   const brand = await activeBrandForUser(db, userId); if (!brand) redirect("/");
   const owner = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(userId, brand.id) as { role: string } | undefined;
   if (owner?.role !== "owner") return;
-  const parsed = prefix.safeParse(formData.get("prefix")); if (!parsed.success) return problem("Use lowercase letters, numbers and dashes, starting with a letter.");
+  const parsed = prefix.safeParse(formData.get("prefix")); if (!parsed.success) return problem("Agent names use lowercase letters, numbers and dashes, and start with a letter.");
   db.prepare("UPDATE brands SET team_prefix = ? WHERE id = ?").run(parsed.data, brand.id);
-  revalidatePath("/integrations"); revalidatePath("/"); done(`Saved. Your agents will be called ${parsed.data}-director, ${parsed.data}-design and so on. Copy the room template again to create them.`);
+  revalidatePath("/integrations"); revalidatePath("/"); done(`Saved. Your agents are now ${parsed.data}-director, ${parsed.data}-design and so on. Copy the room template again to create them.`);
 }
 
 export async function saveFigmaFileAction(formData: FormData) {
@@ -69,7 +69,7 @@ export async function saveWatchPullsAction(formData: FormData) {
   const owner = db.prepare("SELECT role FROM memberships WHERE user_id = ? AND brand_id = ?").get(userId, brand.id) as { role: string } | undefined;
   if (owner?.role !== "owner") return;
   const watch = formData.get("watch") === "on"; const schedule = formData.get("schedule") === "on"; setWatchPulls(brand.id, watch); setScheduleAudits(brand.id, schedule); revalidatePath("/integrations");
-  done(`Saved. Pull request checks are ${watch ? "on" : "off"} and the daily repository audit is ${schedule ? "on" : "off"}.`);
+  done(`Saved. Pull request checks are ${watch ? "on" : "off"} and the daily repository check is ${schedule ? "on" : "off"}.`);
 }
 
 export async function runRepoAuditAction() {

@@ -26,7 +26,7 @@ export async function readGuideline(_: ReadState, formData: FormData): Promise<R
   const { brandId } = await ctx();
   const kind = String(formData.get("kind") ?? "file");
   try {
-    if (kind === "sample") return { suggestion: nexaSample, sourceName: "Sample brand (Nexa)", kind: "sample", note: "These are sample values. Change them to yours, or keep them to try Markpath." };
+    if (kind === "sample") return { suggestion: nexaSample, sourceName: "Sample brand (Nexa)", kind: "sample", note: "These are sample values. Replace them with yours, or keep them to try Markpath." };
     if (kind === "file") {
       const file = formData.get("file");
       if (!(file instanceof File) || file.size === 0) return { error: "Choose a guideline file first." };
@@ -42,7 +42,7 @@ export async function readGuideline(_: ReadState, formData: FormData): Promise<R
     const design = isDesignLink(link);
     if (design) {
       if (design === "figma") saveFigmaFile(brandId, link); else saveCanvaDesign(brandId, link);
-      return { suggestion: { colours: [], fonts: [], found: [] }, sourceName: link, kind: "design", note: `Saved as the ${design === "figma" ? "Figma file" : "Canva design"} to check. Markpath can't read rules from a design yet, so add your main colour, typeface and corner radius below.` };
+      return { suggestion: { colours: [], fonts: [], found: [] }, sourceName: link, kind: "design", note: `${design === "figma" ? "Figma file" : "Canva design"} saved for checks. Markpath can't read rules from a design yet, so add your colour, typeface and corner radius below.` };
     }
     const suggestion = await suggestFromWebsite(link);
     return { suggestion, sourceName: suggestion.title ?? link, kind: "website", note: suggestion.found.length ? `Read ${new URL(/^https?:/.test(link) ? link : `https://${link}`).hostname}. Found ${suggestion.found.join(", ")}. Check them below.` : "We read the site but couldn't find clear brand values. Add them below." };
@@ -71,7 +71,7 @@ export async function uploadOnboardingLogo(formData: FormData) {
   const { brandId, userId } = await ctx();
   const file = formData.get("logo");
   if (file instanceof File && file.size > 0) {
-    try { await saveBrandLogo(brandId, userId, file); } catch (error) { redirect(`/onboarding?step=logo&problem=${encodeURIComponent(error instanceof Error ? error.message : "That logo couldn't be saved.")}`); }
+    try { await saveBrandLogo(brandId, userId, file); } catch (error) { redirect(`/onboarding?step=logo&problem=${encodeURIComponent(error instanceof Error ? error.message : "That logo couldn't be saved. Try a PNG, JPG or WebP under 1 MB.")}`); }
   }
   redirect("/onboarding?step=github");
 }
@@ -80,7 +80,7 @@ export async function saveDesignLinks(formData: FormData) {
   const { brandId } = await ctx();
   const figma = String(formData.get("figma") ?? "").trim(); const canva = String(formData.get("canva") ?? "").trim();
   try { if (figma) saveFigmaFile(brandId, figma); if (canva) saveCanvaDesign(brandId, canva); }
-  catch (error) { redirect(`/onboarding?step=design&problem=${encodeURIComponent(error instanceof Error ? error.message : "Check the links.")}`); }
+  catch (error) { redirect(`/onboarding?step=design&problem=${encodeURIComponent(error instanceof Error ? error.message : "Check the links. Copy the full address from your browser and paste it again.")}`); }
   redirect("/onboarding?step=chat");
 }
 

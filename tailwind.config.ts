@@ -10,6 +10,8 @@ const token = (name: string) => `color-mix(in srgb, var(--color-${name}) calc(<a
 
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  // hover: utilities only apply on devices that can really hover (no sticky hover after a tap).
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {
