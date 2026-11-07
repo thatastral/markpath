@@ -70,16 +70,20 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const logoPreview = logo?.data_base64 && /^image\/(png|jpeg|webp)$/.test(logo.content_type) ? `data:${logo.content_type};base64,${logo.data_base64}` : undefined;
   const theme = await readTheme();
 
-  return <div className="min-h-dvh bg-canvas">
-    <div aria-hidden className="fixed inset-0 bg-[rgb(15_15_20/0.04)] dark:bg-black/30" />
-    <header className="relative mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4">
-      <span className="flex min-w-0 items-center gap-2"><Logo /><span className="min-w-0 truncate text-sm font-semibold" title={brand.name}>{brand.name}</span></span>
-      <span className="ml-auto flex items-center gap-2">
-        <ThemeSwitcher initial={theme} />
-        <form action={logout}><button className={buttonClass("ghost", "sm")} type="submit">Sign out</button></form>
-      </span>
-    </header>
-    <main className="relative mx-auto w-full max-w-4xl px-4 pb-10 pt-4 sm:pt-8">
+  return <div className="relative min-h-dvh overflow-hidden bg-canvas">
+    {/* A quiet picture of the dashboard behind the setup window, blurred, so setup feels like a step inside the app. */}
+    <div aria-hidden className="pointer-events-none fixed inset-0 flex select-none blur-[6px]">
+      <div className="hidden w-60 shrink-0 flex-col gap-2 border-r border-border bg-canvas p-3 lg:flex">
+        <div className="mb-3 h-7 w-32 rounded-control bg-hover" />{[0, 1, 2, 3, 4, 5].map((i) => <div className="h-7 rounded-control bg-hover/70" key={i} />)}
+      </div>
+      <div className="flex-1 bg-surface p-8">
+        <div className="h-6 w-40 rounded bg-hover" /><div className="mt-3 h-4 w-72 rounded bg-hover/70" />
+        <div className="mt-8 grid max-w-3xl grid-cols-4 gap-2">{[0, 1, 2, 3].map((i) => <div className="h-20 rounded-card border border-border" key={i} />)}</div>
+        <div className="mt-6 max-w-3xl space-y-2">{[0, 1, 2, 3, 4].map((i) => <div className="h-12 rounded-panel border border-border" key={i} />)}</div>
+      </div>
+    </div>
+    <div aria-hidden className="fixed inset-0 bg-[rgb(15_15_20/0.18)] backdrop-blur-[2px] dark:bg-black/50" />
+    <main className="relative mx-auto grid min-h-dvh w-full max-w-4xl place-items-center px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-why" className="anim-rise grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card border border-border bg-surface shadow-pop md:grid-cols-[14rem_minmax(0,1fr)]">
         <nav aria-label="Setup steps" className="min-w-0 border-b border-border bg-canvas p-4 md:border-b-0 md:border-r">
           <div className="mb-3 grid gap-1.5">
@@ -120,7 +124,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
               <ol className="space-y-5 text-sm">
                 <li><p className="font-medium"><span className="tabular-nums text-muted">1.</span> Name your agents</p><p className="mb-2 text-xs text-muted">Keep the default or pick your own.</p><AgentPrefixForm prefix={prefix} /></li>
                 <li><p className="font-medium"><span className="tabular-nums text-muted">2.</span> Copy your room template</p><p className="mb-2 text-xs text-muted">It already includes your agents&apos; names and keys.</p><CopyRoomTemplate autoFocus /></li>
-                <li><p className="font-medium"><span className="tabular-nums text-muted">3.</span> Create the room in Switch Console</p><p className="mb-2 text-xs text-muted">Switch Console is the free desktop app that runs your agents and connects them to Discord, Slack or Telegram. Get it from <SetupExternalLink href="https://www.switchagents.ai">switchagents.ai</SetupExternalLink>, then paste the template there and create the room.</p><ChatApps /></li>
+                <li><p className="font-medium"><span className="tabular-nums text-muted">3.</span> Create the room in Switch Console</p><p className="mb-2 text-xs text-muted">Switch Console is the free desktop app that runs your agents and connects them to Telegram or Discord. Get it from <SetupExternalLink href="https://www.switchagents.ai">switchagents.ai</SetupExternalLink>, then paste the template there and create the room.</p><ChatApps /></li>
                 <li><p className="font-medium"><span className="tabular-nums text-muted">4.</span> Say hello</p><p className="mb-2 text-xs text-muted">Send this in the room. This step turns green when an agent replies.</p><SetupCopyButton label="test message" value={`@${prefix}-director what's the status?`} /></li>
               </ol>
               {done.chat ? <Notice tone="success" role="status">An agent replied in your room. You&apos;re all set.</Notice> : <SetupRefreshButton waiting="No reply yet. Send the test message in your room, then check again." />}

@@ -70,7 +70,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     </div>,
 
     chat: <div className="grid gap-5 text-sm">
-      <p><span className="font-medium">Which chat app?</span> Discord is quickest. Slack and Telegram work too. Teams needs your IT admin.</p>
+      <p><span className="font-medium">Which chat app?</span> Telegram works today. Discord is in beta. Slack and Teams are coming soon.</p>
       <p className={help}>{switchReachable ? "Markpath can reach Switch, which runs your chat room." : "Markpath can't reach Switch, which runs your chat room. Start Switch, then select Check again."}</p>
       <form action={saveTeamPrefix} className={field}>
         <label className={label} htmlFor="prefix">1. Name your agents</label>
@@ -124,15 +124,15 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     <section aria-labelledby="tools-grid-heading" className="mb-10">
       <SectionHeading description="Pick a tool to jump to its setup step." id="tools-grid-heading" title="Your tools" />
       <nav aria-label="Filter tools" className="mt-3 flex flex-wrap gap-1">{chips.map(([label, value, count]) => { const on = (notice.show ?? "all") === value; return <Link aria-current={on ? "page" : undefined} className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-medium lg:min-h-7 ${on ? "border-border-strong bg-hover text-ink" : "border-border text-muted hover:bg-hover hover:text-ink"}`} href={value === "all" ? "/integrations" : `/integrations?show=${value}`} key={value}>{label}<span className="tabular-nums text-muted">{count}</span></Link>; })}</nav>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{shown.map((step) => <li className={`flex flex-col ${cardClass} p-4`} key={step.key}>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{shown.map((step) => { const done = step.status === "done"; const optional = step.optional && step.status !== "done"; return <li className={`flex flex-col ${cardClass} p-4`} key={step.key}>
         <div className="flex items-start justify-between gap-3">
-          <span aria-hidden className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border text-ink">{toolIcon(step.key, step.status === "done")}</span>
-          <Link className={buttonClass(step.key === nextKey ? "primary" : "secondary", "sm")} href={`#step-${step.n}`}>{cardLabel(step)}<span className="sr-only"> {step.title}</span></Link>
+          <span aria-hidden className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border text-ink">{toolIcon(step.key, done)}</span>
+          {done ? <Badge tone="success">{step.key === "brand" || step.key === "check" ? "Done" : "Connected"}</Badge> : optional ? <Badge tone="neutral">Optional</Badge> : <SetupStatusBadge status={step.status} />}
         </div>
         <h3 className="mt-3 text-sm font-semibold">{step.title}</h3>
-        <p className="mt-0.5 line-clamp-2 text-sm text-muted">{step.why}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2 pt-1">{step.status === "done" ? <Badge tone="success">{step.key === "brand" || step.key === "check" ? "Done" : "Connected"}</Badge> : <SetupStatusBadge status={step.status} />}{step.optional && step.status !== "optional" && <span className="text-xs text-muted">Optional</span>}</div>
-      </li>)}</ul>
+        <p className="mt-1 line-clamp-2 text-sm text-muted">{step.why}</p>
+        <div className="mt-auto pt-4"><Link className={buttonClass(step.key === nextKey ? "primary" : "secondary", "sm", "w-full")} href={`#step-${step.n}`}>{cardLabel(step)}<span className="sr-only"> {step.title}</span></Link></div>
+      </li>; })}</ul>
       {shown.length === 0 && <p className={`mt-4 ${cardClass} px-4 py-6 text-center text-sm text-muted`}>{notice.show === "connected" ? "Nothing is connected yet. Start with the first step below." : "Everything is set up. Nice work."}</p>}
     </section>
 

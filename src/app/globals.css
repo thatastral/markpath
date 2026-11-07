@@ -216,3 +216,43 @@ details[open] > summary .chev { transform: rotate(90deg); }
 /* File drop zone: the hidden file input's keyboard focus shows on the zone. */
 .dropzone:has(input:focus-visible) { outline: 2px solid var(--color-brand); outline-offset: 2px; }
 .dropzone { transition-property: background-color, border-color; transition-duration: var(--duration-xshort); transition-timing-function: var(--ease-out-quad); }
+
+/* Landing: sections fade and rise in once, when scrolled into view. No JS means everything stays visible. */
+[data-reveal] { --reveal-delay: 0ms; }
+.mp-motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--duration-slow) var(--ease-out-cubic), transform var(--duration-slow) var(--ease-out-cubic);
+  transition-delay: var(--reveal-delay);
+}
+.mp-motion [data-reveal].is-visible { opacity: 1; transform: none; }
+
+/* Landing mascots: a slow idle bob, blinking eyes, and a pause-and-tilt on hover. */
+@keyframes mp-mascot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes mp-mascot-blink {
+  0%, 91%, 100% { transform: scaleY(1); }
+  93%, 95% { transform: scaleY(0.12); }
+  97% { transform: scaleY(1); }
+}
+.mp-mascot-bob {
+  animation: mp-mascot-bob var(--mascot-bob, 7s) var(--ease-in-out-cubic) infinite;
+  animation-delay: var(--mascot-delay, 0s);
+  will-change: transform;
+}
+.mp-mascot-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mp-mascot-blink 7.5s linear infinite;
+  animation-delay: var(--mascot-blink, 0s);
+}
+.mp-mascot-item:hover .mp-mascot-bob { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-motion [data-reveal] { opacity: 1; transform: none; transition-duration: var(--duration-short); }
+  .mp-mascot-bob, .mp-mascot-eyes { animation: none; }
+  .mp-mascot-bob { will-change: auto; }
+}
+

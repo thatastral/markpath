@@ -55,18 +55,18 @@ export default async function OverviewPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
     <h2 className="text-2xl font-semibold tracking-tight">{greeting}{first && first.toLowerCase() !== "demo" ? `, ${first}` : ""}.</h2>
     <p className="mt-1 text-sm text-muted">Here's what's happening in {brand.name}.</p>
-    <nav aria-label="At a glance" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{[
+    <nav aria-label="At a glance" className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">{[
       ["Open issues", overview.issueCount, overview.findingCount ? `in ${overview.findingCount} ${overview.findingCount === 1 ? "place" : "places"}` : "nothing to fix", "/issues"],
       ["High priority", overview.criticalOrHighCount, "fix these first", "/issues?severity=high"],
       ["Waiting for you", overview.pendingApprovalCount, overview.pendingApprovalCount ? "approve or reject" : "nothing to approve", "/issues"],
       ["Fixes verified", overview.completedTaskCount, awaitingQa ? `${awaitingQa} waiting for QA` : "checked by Brand QA", "/activity"],
-    ].map(([label, value, sub, href]) => <Link className="rounded-card border border-border bg-surface p-4 transition-colors hover:border-border-strong" href={href as string} key={label as string}><span className="block text-xs text-muted">{label}</span><span className="mt-1 block text-2xl font-semibold tabular-nums tracking-tight">{value}</span><span className="mt-0.5 block text-xs text-muted">{sub}</span></Link>)}</nav>
-    {awaitingQa > 0 && <p className="mt-1 text-sm text-muted">Ask @{setup.context.teamPrefix}-qa to check, or wait for the Director to ask.</p>}
+    ].map(([label, value, sub, href]) => <Link className={`group flex min-h-[104px] flex-col rounded-card border bg-surface p-4 transition-colors hover:border-border-strong sm:p-5 ${label === "Waiting for you" && overview.pendingApprovalCount > 0 ? "border-border-strong bg-canvas" : "border-border"}`} href={href as string} key={label as string}><span className="flex items-center justify-between gap-2 text-xs text-muted">{label}{label === "Waiting for you" && overview.pendingApprovalCount > 0 && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand" />}</span><span className="mt-auto pt-3 block text-3xl font-semibold tabular-nums tracking-tight">{value}</span><span className="mt-0.5 block text-xs text-muted">{sub}</span></Link>)}</nav>
+    {awaitingQa > 0 && <p className="mt-2 text-sm text-muted">Ask @{setup.context.teamPrefix}-qa to check, or wait for the Director to ask.</p>}
 
-    <section aria-labelledby="decide-heading" className="mt-10">
+    <section aria-labelledby="decide-heading" className="mt-12">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/issues">All issues<ChevronRight size={14} /></Link>} count={overview.pendingApprovalCount} id="decide-heading" title="Needs your decision" />
       {byTask.size === 0 ? <div className={`mt-3 ${cardClass}`}><p className="flex items-center gap-3 px-4 py-4 text-sm text-muted"><StatusIcon kind="done" />Nothing needs your decision. Changes show up here when an agent asks you to approve.</p></div>
-        : <ul className={`mt-3 divide-y divide-border overflow-hidden ${cardClass}`}>{[...byTask.entries()].map(([taskId, items]) => <li key={taskId}><Link className="row-link flex min-h-12 items-center gap-3 px-4 py-3 hover:bg-hover" href={`/approve/${taskId}`}>
+        : <ul className={`mt-3 divide-y divide-border overflow-hidden border-l-2 border-l-brand-solid ${cardClass}`}>{[...byTask.entries()].map(([taskId, items]) => <li key={taskId}><Link className="row-link flex min-h-14 items-center gap-3 px-4 py-3.5 hover:bg-hover sm:px-5" href={`/approve/${taskId}`}>
           <StatusIcon kind="waiting" />
           <span className="min-w-0 flex-1">{(() => { const t = `${describeApproval(items[0].approved_action, items[0].resource_name, items[0].resource_ref).heading}${items.length > 1 ? ` and ${items.length - 1} more` : ""}`; return <span className="block truncate text-sm font-medium" title={t}>{t}</span>; })()}<span className="block text-xs text-muted">Brand Director asked {whenText(items[0].created_at)}</span></span>
           <span aria-hidden className={buttonClass("primary", "sm")}>Review</span>
@@ -75,10 +75,10 @@ export default async function OverviewPage() {
 
     <SetupOverview setup={{ ...setup, steps: setup.steps.filter((s) => !s.optional) }} />
 
-    <section aria-labelledby="recent-heading" className="mt-10">
+    <section aria-labelledby="recent-heading" className="mt-12">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/activity">See all<ChevronRight size={14} /></Link>} id="recent-heading" title="Recent activity" />
       {overview.recentActivity.length === 0 ? <div className="mt-3"><EmptyState action={<Link className={buttonClass("secondary")} href="/integrations#step-5">Set up the chat room</Link>} framed icon={<ActivityIcon size={28} />} title="No activity yet">Agent work shows up here once your chat room is set up.</EmptyState></div>
-        : <ul className={`mt-3 divide-y divide-border overflow-hidden ${cardClass}`}>{overview.recentActivity.map((e) => <li className="flex min-h-11 items-start gap-3 px-4 py-2.5" key={e.id}>
+        : <ul className={`mt-3 divide-y divide-border overflow-hidden ${cardClass}`}>{overview.recentActivity.slice(0, 5).map((e) => <li className="flex min-h-11 items-start gap-3 px-4 py-2.5" key={e.id}>
           <span className="mt-px"><AgentAvatar name={e.agent_name} /></span>
           <div className="flex min-w-0 flex-1 flex-col gap-x-4 gap-y-0.5 sm:flex-row sm:items-baseline sm:justify-between">
             <p className="min-w-0 text-sm"><span className="font-medium">{agentLabel(e.agent_name)}</span> <span className="text-muted">{activityText(e.activity_type, e.status)}</span></p>
@@ -87,9 +87,9 @@ export default async function OverviewPage() {
         </li>)}</ul>}
     </section>
 
-    <section aria-labelledby="tools-heading" className="mt-10">
+    <section aria-labelledby="tools-heading" className="mt-12">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/integrations">Manage<ChevronRight size={14} /></Link>} id="tools-heading" title="Your tools" />
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2">{integrations.map((i) => <li className={`flex min-h-14 items-center gap-3 ${cardClass} px-4 py-3`} key={i.provider}>
+      <ul className="mt-3 grid gap-2 sm:grid-cols-2">{integrations.map((i) => <li className={`flex min-h-12 items-center gap-3 ${cardClass} px-4 py-3`} key={i.provider}>
         <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-border text-ink"><ProviderIcon connected={i.connection_status === "connected"} provider={i.provider} size={16} /></span>
         <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{providerName(i.provider)}</span><span className="block truncate text-xs text-muted" title={toolText(i.provider, i.connection_status, i.mode)}>{toolText(i.provider, i.connection_status, i.mode)}</span></span>
         <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot[toolTone(i.provider, i.connection_status)]}`} />

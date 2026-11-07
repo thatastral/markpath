@@ -7,12 +7,14 @@ const agents = {
 } as const;
 export type MascotKind = keyof typeof agents;
 
-export function Mascot({ kind, size = 40, className = "" }: { kind: MascotKind; size?: number; className?: string }) {
+export function Mascot({ kind, size = 40, className = "", blink = false }: { kind: MascotKind; size?: number; className?: string; blink?: boolean }) {
   const a = agents[kind];
   return <svg aria-hidden className={className} height={size} viewBox="0 0 24 24" width={size}>
     <path d={a.shape} fill={a.fill} />
-    <ellipse cx="9.2" cy="11.2" fill="#fff" rx="1.9" ry="2.3" /><ellipse cx="14.8" cy="11.2" fill="#fff" rx="1.9" ry="2.3" />
-    <circle cx="9.7" cy="11.6" fill="#111" r="1" /><circle cx="15.3" cy="11.6" fill="#111" r="1" />
+    <g className={blink ? "mp-mascot-eyes" : undefined}>
+      <ellipse cx="9.2" cy="11.2" fill="#fff" rx="1.9" ry="2.3" /><ellipse cx="14.8" cy="11.2" fill="#fff" rx="1.9" ry="2.3" />
+      <circle cx="9.7" cy="11.6" fill="#111" r="1" /><circle cx="15.3" cy="11.6" fill="#111" r="1" />
+    </g>
     <path d="M10.4 15.4c.9.7 2.3.7 3.2 0" fill="none" stroke="#111" strokeLinecap="round" strokeWidth="0.9" />
   </svg>;
 }
