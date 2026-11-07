@@ -17,4 +17,4 @@ Markpath is an agentic brand-operations team. Four agents in a Switch room (Dire
 Without Switch there are no agents to coordinate, no @mention handoffs, no chat approvals and no independent QA hand-off. The dashboard is only the record and the approval screen.
 
 ## Known limits (state them)
-Slack and Telegram untested live. Canva MCP edits colours and wording, not fonts, and runs as one connected user. Figma writes need a Full seat. SQLite, single host.
+Slack, Telegram, Discord and Teams are documented from Switch's docs but untested live (Teams also needs a public HTTPS address and an admin). Canva MCP edits colours and wording, not fonts, and runs as one connected user. Figma writes need a Full seat. SQLite, single host.
