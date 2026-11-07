@@ -10,7 +10,7 @@ Use the live site: https://markpath.vercel.app
 | Figma file | https://www.figma.com/design/kdLxaaGP6dR3ftXJpDCKjt (in the Dacoit team, which has the Full seat) |
 | Canva design | https://www.canva.com/design/DAHaL7l9y7c |
 | Figma and Canva sign-in for the agents | https://claude.ai/settings/connectors on the computer running Switch Console |
-| Chat | Switch Console with the bundled Mattermost, or Telegram (the only tested chat apps) |
+| Chat | Telegram and Discord rooms from the same template (Integrations → Chat room → Telegram or Discord guide) |
 
 ## Before recording
 1. Reset Figma and Canva to their off-brand state (see `figma-test-file.md` and `canva-test-design.md`, or ask me to reset them).

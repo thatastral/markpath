@@ -8,7 +8,8 @@ import { dirname, resolve } from "node:path";
 type Db = BetterSqlite.Database;
 const databases = new Map<string, Db>();
 
-export function databasePath(path = process.env.MARKPATH_DB_PATH ?? "./data/markpath.sqlite") {
+// On Vercel without Turso (preview deployments) the only writable place is /tmp: data there is temporary.
+export function databasePath(path = process.env.MARKPATH_DB_PATH ?? (process.env.VERCEL ? "/tmp/markpath.sqlite" : "./data/markpath.sqlite")) {
   return resolve(/* turbopackIgnore: true */ process.cwd(), path);
 }
 
