@@ -30,7 +30,10 @@ export function readSessionValue(value: string | undefined, nowMs = Date.now()) 
 }
 
 export async function currentUserId() {
-  return readSessionValue((await cookies()).get(cookieName)?.value);
+  const value = (await cookies()).get(cookieName)?.value; const userId = readSessionValue(value);
+  if (!userId || !value) return null;
+  const { sessionStillValid } = await import("./reset"); // signed-in devices are signed out after a password reset
+  return sessionStillValid(userId, Number(value.split(".")[1]) - maxAgeSeconds * 1000) ? userId : null;
 }
 
 export async function startSession(userId: string) {

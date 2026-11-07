@@ -121,6 +121,10 @@ export function initializeSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_activity_brand ON agent_activity(brand_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_brand_spec_versions_brand ON brand_spec_versions(brand_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_task_resources_task ON task_resources(task_id, status);
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL, used_at TEXT, created_at TEXT NOT NULL
+    );
   `);
   const approvalColumns = db.prepare("PRAGMA table_info(approvals)").all() as Array<{ name: string }>;
   if (!approvalColumns.some((column) => column.name === "consumed_at")) db.exec("ALTER TABLE approvals ADD COLUMN consumed_at TEXT");
@@ -132,6 +136,8 @@ export function initializeSchema(db: Database.Database) {
   if (!brandColumns.some((c) => c.name === "onboarded_at")) { db.exec("ALTER TABLE brands ADD COLUMN onboarded_at TEXT"); db.exec("UPDATE brands SET onboarded_at = created_at"); }
   const tokenColumns = db.prepare("PRAGMA table_info(api_tokens)").all() as Array<{ name: string }>;
   if (!tokenColumns.some((column) => column.name === "token_enc")) db.exec("ALTER TABLE api_tokens ADD COLUMN token_enc TEXT");
+  const userColumns = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+  if (!userColumns.some((c) => c.name === "password_changed_at")) db.exec("ALTER TABLE users ADD COLUMN password_changed_at TEXT");
   const assetColumns = db.prepare("PRAGMA table_info(brand_assets)").all() as Array<{ name: string }>;
   if (!assetColumns.some((column) => column.name === "data_base64")) db.exec("ALTER TABLE brand_assets ADD COLUMN data_base64 TEXT");
 }
