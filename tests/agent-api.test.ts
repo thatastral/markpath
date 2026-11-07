@@ -7,7 +7,7 @@ import { seedDatabase } from "../src/server/db/seed";
 import { approveSpec, ingestFixtureGuideline } from "../src/server/brand/service";
 import { decideApprovalForOwner, decideTaskApprovals, getTaskApprovalView } from "../src/server/dashboard/service";
 import { authenticateAgent } from "../src/server/agents/auth";
-import { AgentApiError, chatApproval, executeTarget, recordRoomEvent, rolePlaybook, runAudit, taskState, verifyTask, waitForApprovals } from "../src/server/agents/operations";
+import { AgentApiError, chatApproval, executeTarget, overview, recordRoomEvent, rolePlaybook, runAudit, taskState, verifyTask, waitForApprovals } from "../src/server/agents/operations";
 import { getOrIssueTokens, issueTokens, verifyToken } from "../src/server/tokens/service";
 import { buildRoomTemplate } from "../src/server/tokens/room-template";
 import { createBrand, addMembership } from "../src/server/db/repositories";
@@ -119,6 +119,37 @@ describe("approve by chat reply", () => {
     const label = db.prepare("SELECT status FROM agent_activity WHERE activity_type = 'approval_decision'").get() as { status: string };
     expect(label.status).toContain("relayed"); expect(label.status).toContain("not login-verified"); expect(label.status).toContain("sole workspace owner");
     await executeTarget({ role: "implementation", brandId: brand.id }, { taskId: audit.taskId, target: "github" }); // approvals from chat unlock execution
+  }, 30_000);
+});
+
+describe("talking to the agents naturally", () => {
+  it("accepts plain yes/no phrasing but not hedged or conditional replies", async () => {
+    const { brand, db } = await stage(); const dir = { role: "director" as const, brandId: brand.id };
+    const audit = await runAudit(dir, {}) as { taskId: string };
+    const reply = (quote: string, n: number) => () => chatApproval(dir, { taskId: audit.taskId, senderHandle: "user", roomId: "r", messageId: `m-${n}`, quote });
+    for (const [i, q] of ["yes but change the colour first", "approve the colours but not the radius", "go ahead?", "maybe later", "yes I think so, why does it need 2?"].entries()) expect(reply(q, i)).toThrow("plain yes or no");
+    expect(reply("@mp-director approve changes", 10)()).toMatchObject({ decision: "approved" });
+    const second = await runAudit(dir, {}) as { taskId: string }; void second;
+    expect(db.prepare("SELECT COUNT(*) AS n FROM approvals WHERE decision = 'approved'").get()).toEqual({ n: 2 });
+  }, 30_000);
+  it("recognises common affirmations and refusals", async () => {
+    const { brand } = await stage(); const dir = { role: "director" as const, brandId: brand.id };
+    const phrases: Array<[string, "approved" | "rejected"]> = [["Yes please", "approved"], ["go ahead!", "approved"], ["Ship it", "approved"], ["LGTM", "approved"], ["looks good", "approved"], ["Approve all", "approved"], ["No", "rejected"], ["hold off", "rejected"], ["don't do it", "rejected"], ["Reject changes", "rejected"], ["stop", "rejected"]];
+    for (const [i, [quote, expected]] of phrases.entries()) {
+      const a = await runAudit(dir, {}) as { taskId: string; reused?: boolean };
+      const out = chatApproval(dir, { taskId: a.taskId, senderHandle: "user", roomId: "r", messageId: `p-${i}`, quote }); expect(out.decision).toBe(expected);
+      if (expected === "approved") { /* leave the task approved; next loop reuses nothing because the audit creates a new one only when none is active */ }
+      getDatabase().prepare("UPDATE tasks SET status = 'FAILED' WHERE id = ?").run(a.taskId);
+    }
+  }, 60_000);
+  it("answers 'what is going on' in one call and lets Implementation review pull requests", async () => {
+    const { brand } = await stage(); const dir = { role: "director" as const, brandId: brand.id };
+    const before = overview(dir); expect(before.openIssues).toEqual([]); expect(before.waitingForApproval).toEqual([]);
+    await runAudit(dir, {});
+    const after = overview({ role: "qa", brandId: brand.id });
+    expect(after.issues.length).toBeGreaterThan(0); expect(after.waitingForApproval).toHaveLength(1); expect(after.connections.map((c: { provider: string }) => c.provider).sort()).toEqual(["canva", "figma", "github", "switch"]);
+    expect(rolePlaybook(dir, "x", "http://b").playbook).toContain("WHAT PEOPLE MIGHT ASK THE DIRECTOR");
+    expect(rolePlaybook({ role: "design", brandId: brand.id }, "x", "http://b").playbook).toContain("HOW PEOPLE TALK TO YOU");
   }, 30_000);
 });
 

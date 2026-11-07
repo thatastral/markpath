@@ -192,9 +192,13 @@ export const normalizeHandle = (handle: string) => handle.trim().replace(/^@/, "
 export function chatApproval(ctx: Ctx, input: { taskId: string; senderHandle: string; roomId: string; messageId: string; quote: string }) {
   requireRole(ctx.role, ["director"], "relay a chat approval");
   const task = taskRow(input.taskId, ctx.brandId);
-  const text = input.quote.replace(/^\s*(@\S+\s+)+/, "").trim();
-  const decision = /^approv(e|ed|al)\b/i.test(text) ? "approved" : /^(reject|rejected|deny|denied|decline)\b/i.test(text) ? "rejected" : null;
-  if (!decision) throw new AgentApiError("That message is not an explicit approve or reject. Ask the person to reply with the word approve or reject, or send them the approval link.", 422);
+  // People talk naturally, so a short, plain yes or no is accepted ("approve changes", "go ahead", "no, hold off"). Anything longer, hedged or conditional is not.
+  const clean = input.quote.replace(/^\s*(@\S+\s+)+/, "").toLowerCase().replace(/[.!,;:]+/g, " ").replace(/\s+/g, " ").trim();
+  const object = "(?: (?:all|both|them|it|this|that|these|those|everything|changes|the changes|the fixes|fixes|the update|updates))?(?: (?:please|now|thanks|thank you))?";
+  const approveRe = new RegExp(`^(?:approve|approved|approval|yes|yep|yeah|go ahead|go for it|ship it|lgtm|looks good|do it|proceed|confirm|confirmed)${object}$`);
+  const rejectRe = new RegExp(`^(?:reject|rejected|deny|denied|decline|declined|no|nope|stop|hold off|cancel|(?:do not|don't|dont) (?:do it|proceed|approve|ship it))${object}$`);
+  const decision = approveRe.test(clean) ? "approved" : rejectRe.test(clean) ? "rejected" : null;
+  if (!decision) throw new AgentApiError("That message is not a plain yes or no. Ask the person to reply with just approve or reject (for example 'approve changes'), or send them the approval link.", 422);
   // Switch tells an agent only that "a user" addressed it, not who. When the sender is reported with that generic label, the approval is attributed to the
   // workspace owner, but only if the workspace has exactly one owner. Switch's addressing rules (the Director answers the room owner and the owner's agents) are what limit who can reach the Director.
   const genericSender = ["user", "owner", "human"].includes(normalizeHandle(input.senderHandle));
@@ -257,7 +261,7 @@ export async function figmaScript(ctx: Ctx, name: "inspect" | "apply") {
 
 /** Read-only review of a link someone pastes into the room. A review never edits anything and never creates an approval. */
 export async function vetLink(ctx: Ctx, input: { url: string }) {
-  requireRole(ctx.role, ["director"], "start a review");
+  requireRole(ctx.role, ["director", "implementation"], "start a review");
   const url = input.url.trim(); const values = brandValuesFor(ctx.brandId);
   const pull = parsePullUrl(url);
   if (pull) {
@@ -288,4 +292,15 @@ export function contrastCheck(ctx: Ctx, input: { pairs: import("@/server/audits/
   const row = db().prepare("SELECT brand_specification FROM brands WHERE id = ?").get(ctx.brandId) as { brand_specification: string } | undefined;
   const { contrast } = brandJudgementRules(row?.brand_specification ?? "{}");
   return { thresholds: contrast, ...checkContrast(input.pairs, contrast), note: "Contrast failures are design decisions: report them as 'contrast' items that need a person, never auto-fix them. Only failing or unmeasurable pairs are listed." };
+}
+
+/** One call that answers "what's going on?": open issues, what is waiting, recent work and how things are connected. */
+export function overview(ctx: Ctx) {
+  const brand = brandFor(ctx.brandId);
+  const issues = db().prepare("SELECT i.provider, r.resource_name AS resource, f.rule_id AS rule, f.detected_value AS detected, f.expected_value AS expected, f.classification, f.severity FROM findings f JOIN resources r ON r.id = f.resource_id LEFT JOIN integrations i ON i.id = r.integration_id WHERE f.brand_id = ? AND f.status = 'open' ORDER BY CASE f.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END LIMIT 25").all(ctx.brandId);
+  const counts = db().prepare("SELECT i.provider, f.classification, COUNT(*) AS n FROM findings f JOIN resources r ON r.id = f.resource_id LEFT JOIN integrations i ON i.id = r.integration_id WHERE f.brand_id = ? AND f.status = 'open' GROUP BY 1, 2").all(ctx.brandId);
+  const tasks = db().prepare("SELECT id AS taskId, status, description FROM tasks WHERE brand_id = ? ORDER BY created_at DESC LIMIT 5").all(ctx.brandId);
+  const reviews = db().prepare("SELECT kind, target, verdict, summary FROM vet_reports WHERE brand_id = ? ORDER BY created_at DESC LIMIT 5").all(ctx.brandId);
+  const connections = db().prepare("SELECT provider, connection_status AS status, mode FROM integrations WHERE brand_id = ?").all(ctx.brandId);
+  return { brand: brand.name, teamPrefix: teamPrefixFor(ctx.brandId), openIssues: counts, issues, waitingForApproval: pendingTasks({ ...ctx, role: "director" }).pending, recentTasks: tasks, recentReviews: reviews, connections, dashboard: "Issues and approvals, Reviews and Agent activity pages on the Markpath dashboard hold the full detail." };
 }
