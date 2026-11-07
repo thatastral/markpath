@@ -20,13 +20,28 @@ export default function WelcomePage() {
 
     <main>
       <section className="mx-auto max-w-3xl px-4 pb-16 pt-16 text-center sm:px-6 sm:pt-24">
-        <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-canvas px-3 py-1 text-xs text-muted"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand" />Four agents, one Switch room</p>
+        <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-canvas px-3 py-1 text-xs text-muted"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#2457F5]" />Four agents, one Switch room</p>
         <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight sm:text-6xl">Keep your brand consistent everywhere.</h1>
         <p className="mx-auto mt-5 max-w-xl text-pretty text-base text-muted sm:text-lg">Markpath finds outdated colours, fonts and corners in your code, Figma and Canva. You approve the exact change in chat. Agents fix it and prove it worked.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-2"><Link className={buttonClass("primary", "md", "px-4")} href="/signup">Get started free</Link><a className={buttonClass("secondary", "md", "px-4")} href="https://github.com/thatastral/markpath" rel="noreferrer" target="_blank">View on GitHub</a></div>
       </section>
 
-      <section aria-label="A conversation in the room" className="mx-auto max-w-2xl px-4 sm:px-6">
+      <section aria-label="What Markpath changes" className="mx-auto mt-10 max-w-2xl px-4 sm:px-6">
+        <svg className="h-auto w-full" role="img" viewBox="0 0 640 150" aria-labelledby="ill-title"><title id="ill-title">Old brand values become the new ones: colour, typeface and corner radius</title>
+          <g fontFamily="var(--font-sans)" fontSize="12">
+            {[0, 1, 2].map((i) => <g key={i} transform={`translate(${i * 215} 0)`}>
+              <rect x="1" y="1" width="208" height="148" rx="18" fill="var(--color-canvas)" stroke="var(--color-border)" />
+              <text x="20" y="30" fill="var(--color-muted)">{["Colour", "Typeface", "Corner radius"][i]}</text>
+              {i === 0 && <><rect x="20" y="52" width="40" height="40" rx="10" fill="#164B9B" opacity="0.45" /><path d="M76 72h28m-8-7l8 7-8 7" stroke="var(--color-muted)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /><rect x="120" y="52" width="40" height="40" rx="10" fill="#2457F5" /><text x="20" y="122" fill="var(--color-muted)" fontFamily="var(--font-mono)">#164B9B → #2457F5</text></>}
+              {i === 1 && <><text x="20" y="84" fontSize="26" fill="var(--color-faint)" fontFamily="Georgia, serif">Aa</text><path d="M76 76h28m-8-7l8 7-8 7" stroke="var(--color-muted)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /><text x="120" y="84" fontSize="26" fontWeight="600" fill="var(--color-ink)">Aa</text><text x="20" y="122" fill="var(--color-muted)" fontFamily="var(--font-mono)">Inter → Geist</text></>}
+              {i === 2 && <><rect x="20" y="58" width="46" height="28" rx="3" fill="none" stroke="var(--color-faint)" strokeWidth="1.6" /><path d="M76 72h28m-8-7l8 7-8 7" stroke="var(--color-muted)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /><rect x="120" y="58" width="46" height="28" rx="9" fill="none" stroke="var(--color-ink)" strokeWidth="1.6" /><text x="20" y="122" fill="var(--color-muted)" fontFamily="var(--font-mono)">4px → 8px</text></>}
+              <circle cx="186" cy="26" r="7" fill="var(--color-success-soft)" /><path d="M182.5 26l2.4 2.4 4.6-4.8" stroke="var(--color-success)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </g>)}
+          </g>
+        </svg>
+      </section>
+
+      <section aria-label="A conversation in the room" className="mx-auto mt-4 max-w-2xl px-4 sm:px-6">
         <div className="rounded-card border border-border bg-canvas p-4 text-left text-sm shadow-card sm:p-5">
           {[
             ["You", "@mp-director fix the issues"],
