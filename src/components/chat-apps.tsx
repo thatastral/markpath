@@ -1,4 +1,4 @@
-import { ChevronRight } from "@/components/ui/icons";
+import { ChevronRight, ProviderIcon } from "@/components/ui/icons";
 import { SetupDiscordInvite } from "@/components/setup-discord-invite";
 import { SetupExternalLink } from "@/components/setup-external-link";
 
@@ -17,8 +17,8 @@ export function ChatApps() {
       <p className="text-muted">The agents and approvals work the same in every app. Pick one, connect it in Switch Console, then create the room from the template and choose that app.</p>
       <div className="mt-2 grid gap-2">
         {apps.map((a) => (
-          <details className="group rounded-control border border-border bg-surface px-3 open:shadow-card" key={a.name}>
-            <summary className="flex min-h-11 cursor-pointer flex-wrap items-center gap-2 py-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><ChevronRight className="chev shrink-0 text-muted" />{a.name}{a.tag && <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${a.discord ? "bg-brand-soft text-brand" : "bg-subtle text-muted"}`}>{a.tag}</span>}<span className="ml-auto text-xs font-normal text-muted">{a.time}</span></summary>
+          <details className="group rounded-control border border-border bg-surface px-3 " key={a.name}>
+            <summary className="flex min-h-10 cursor-pointer flex-wrap items-center gap-2 py-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><ChevronRight className="chev shrink-0 text-muted" size={14} /><ProviderIcon className="shrink-0" provider={a.name === "Microsoft Teams" ? "teams" : a.name.toLowerCase()} />{a.name}{a.tag && <span className={`inline-flex h-5 items-center rounded-full border px-2 text-xs font-medium ${a.discord ? "border-brand/40 text-brand" : "border-border text-muted"}`}>{a.tag}</span>}<span className="ml-auto text-xs font-normal text-muted">{a.time}</span></summary>
             <p className="mt-2"><span className="font-medium">What you&apos;ll need:</span> <span className="text-muted">{a.needs}</span></p>
                         <p className="mt-2"><SetupExternalLink button href={a.open.href}>{a.open.label}</SetupExternalLink></p>
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 marker:text-muted">{a.steps.map((s) => <li key={s}>{s}</li>)}</ol>

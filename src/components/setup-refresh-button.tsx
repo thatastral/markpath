@@ -12,7 +12,7 @@ export function SetupRefreshButton() {
   const [checked, setChecked] = useState(false);
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <button className={`inline-flex min-h-10 items-center gap-2 rounded-control border border-border-strong bg-surface px-3 text-sm font-medium shadow-card hover:bg-subtle disabled:opacity-60 ${focus}`} disabled={pending} onClick={() => start(() => { router.refresh(); setChecked(true); })} type="button">{pending ? <SpinnerIcon /> : <RefreshIcon />}{pending ? "Checking…" : "Check again"}</button>
+      <button className={`inline-flex min-h-10 lg:min-h-8 items-center gap-2 rounded-control border border-border-strong bg-surface px-3 text-sm font-medium hover:bg-hover disabled:opacity-60 ${focus}`} disabled={pending} onClick={() => start(() => { router.refresh(); setChecked(true); })} type="button">{pending ? <SpinnerIcon /> : <RefreshIcon />}{pending ? "Checking…" : "Check again"}</button>
       <span aria-live="polite" className="text-sm text-muted" role="status">{!pending && checked ? "Statuses are up to date." : ""}</span>
     </span>
   );

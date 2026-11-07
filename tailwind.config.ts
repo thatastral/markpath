@@ -16,6 +16,8 @@ const config: Config = {
         canvas: token("canvas"),
         surface: token("surface"),
         subtle: token("subtle"),
+        hover: token("hover"),
+        faint: token("faint"),
         ink: token("ink"),
         muted: token("muted"),
         border: token("border"),
@@ -31,11 +33,21 @@ const config: Config = {
         danger: token("danger"),
         "danger-soft": token("danger-soft")
       },
+      fontSize: {
+        "2xs": ["11px", "16px"],
+        xs: ["12px", "16px"],
+        sm: ["13px", "20px"],
+        base: ["14px", "22px"],
+        lg: ["16px", "24px"],
+        xl: ["18px", "26px"],
+        "2xl": ["22px", "28px"],
+        "3xl": ["26px", "32px"]
+      },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"]
       },
-      borderRadius: { control: "var(--radius-control)", card: "var(--radius-card)" },
+      borderRadius: { control: "var(--radius-control)", card: "var(--radius-card)", panel: "var(--radius-panel)" },
       boxShadow: { card: "var(--shadow-card)", pop: "var(--shadow-pop)" },
       transitionDuration: Object.fromEntries(durations.map((d) => [d, `var(--duration-${d})`])),
       transitionTimingFunction: Object.fromEntries(easings.map((e) => [e, `var(--ease-${e})`]))

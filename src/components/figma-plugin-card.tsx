@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-const button = "inline-flex min-h-10 items-center rounded-control border border-border-strong bg-surface px-3 text-sm font-medium shadow-card hover:bg-subtle disabled:opacity-60";
+const button = "inline-flex min-h-10 lg:min-h-8 items-center rounded-control border border-border-strong bg-surface px-3 text-sm font-medium hover:bg-hover disabled:opacity-60";
 export function FigmaPluginCard() {
   const [state, setState] = useState<{ busy: boolean; message?: string; error?: string }>({ busy: false });
   async function copy(rotate: boolean) {
@@ -14,6 +14,6 @@ export function FigmaPluginCard() {
     } catch (e) { setState({ busy: false, error: e instanceof Error ? e.message : "Could not copy the key." }); }
   }
   return <div className="mt-4 grid gap-2 text-sm"><p className="text-muted">Figma connects through the Markpath plugin, which runs inside your own Figma session, so there is no Figma login to grant. In Figma: Plugins, Development, Import plugin from manifest, then choose <code>figma-plugin/manifest.json</code> from the repository. Then copy your key and paste it into the plugin.</p>
-    <div className="flex flex-wrap items-center gap-2"><button className={button} disabled={state.busy} onClick={() => copy(false)} type="button">Copy plugin key</button><button className="inline-flex min-h-10 items-center rounded-control px-3 text-sm font-medium text-muted hover:bg-subtle hover:text-ink disabled:opacity-60" disabled={state.busy} onClick={() => copy(true)} type="button">Rotate key</button></div>
+    <div className="flex flex-wrap items-center gap-2"><button className={button} disabled={state.busy} onClick={() => copy(false)} type="button">Copy plugin key</button><button className="inline-flex min-h-10 lg:min-h-8 items-center rounded-control px-3 text-sm font-medium text-muted hover:bg-hover hover:text-ink disabled:opacity-60" disabled={state.busy} onClick={() => copy(true)} type="button">Rotate key</button></div>
     {state.message && <p className="text-muted" role="status">{state.message}</p>}{state.error && <p className="text-danger" role="alert">{state.error}</p>}</div>;
 }

@@ -5,36 +5,64 @@ import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { findUserById } from "@/server/db/repositories";
 import { activeBrandForUser, listBrandsForUser } from "@/server/workspace/active";
-import { HomeLink, MainNav } from "@/components/main-nav";
-import { HeaderMenu } from "@/components/header-menu";
-import { buttonClass } from "@/components/ui/primitives";
-import { PlusIcon } from "@/components/ui/icons";
+import { getApprovals } from "@/server/dashboard/service";
+import { getSetupData, type SetupData } from "@/server/dashboard/setup";
+import { MainNav } from "@/components/main-nav";
+import { AppShell } from "@/components/header-menu";
+import { CheckIcon, ChevronDown, LogoutIcon, PlusIcon } from "@/components/ui/icons";
 import { logout, switchWorkspace } from "./actions";
+
+const tile = "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-2xs font-semibold";
+const menuRow = "flex min-h-10 w-full items-center gap-2 rounded-control px-2 text-left text-sm hover:bg-hover lg:min-h-8";
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const userId = await currentUserId();
   if (!userId) redirect("/login");
   const db = getDatabase(); initializeSchema(db);
-  if (!findUserById(db, userId)) redirect("/login"); // a stale cookie for a user that no longer exists
+  const user = findUserById(db, userId);
+  if (!user) redirect("/login"); // a stale cookie for a user that no longer exists
   const brands = listBrandsForUser(db, userId); const active = await activeBrandForUser(db, userId);
-  const field = "max-w-[12rem] rounded-control border border-border-strong bg-surface px-2 text-sm";
-  const quiet = "inline-flex min-h-10 w-full items-center gap-2 rounded-control px-3 text-sm font-medium text-muted hover:bg-subtle hover:text-ink sm:min-h-9 sm:w-auto";
-  return <div className="min-h-screen">
-    <a className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-pop" href="#content">Skip to content</a>
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 sm:px-6">
-        <HomeLink />
-        <HeaderMenu>
-          <MainNav />
-          <div className="flex flex-col items-stretch gap-2 border-t border-border pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-1 sm:border-0 sm:pt-0">
-            {brands.length > 1 && <form action={switchWorkspace} className="flex items-center gap-2"><label className="sr-only" htmlFor="ws">Workspace</label><select className={field} defaultValue={active?.id} id="ws" name="brandId">{brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select><button className={buttonClass("secondary", "sm")} type="submit">Switch</button></form>}
-            {active && brands.length <= 1 && <span className="hidden items-center gap-2 px-2 text-sm text-muted lg:inline-flex"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-success" />{active.name}</span>}
-            <Link className={quiet} href="/workspaces/new"><PlusIcon />New workspace</Link>
-            <form action={logout}><button className={quiet} type="submit">Sign out</button></form>
-          </div>
-        </HeaderMenu>
+  const pending = active ? getApprovals(db, active.id).filter((a) => a.decision === "pending").length : 0;
+  // Sidebar "Getting started" pill (Attio, Langdock). Never let a slow Switch health check hold up the page.
+  const setup = active ? await Promise.race([getSetupData(db, active.id, userId), new Promise<null>((r) => setTimeout(() => r(null), 800))]).catch(() => null) as SetupData | null : null;
+  const required = setup ? setup.steps.filter((s) => !s.optional).length : 0; const doneSteps = setup ? required - setup.requiredLeft : 0;
+  const initial = (s: string) => s.trim().charAt(0).toUpperCase() || "M";
+
+  const sidebar = <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto px-3 pb-3 pt-14 lg:px-2 lg:pt-2">
+    <details className="relative">
+      <summary className="flex min-h-10 cursor-pointer items-center gap-2 rounded-control px-2 hover:bg-hover lg:min-h-8">
+        <span aria-hidden className={`${tile} bg-brand-solid text-white`}>{initial(active?.name ?? "Markpath")}</span>
+        <span className="min-w-0 truncate text-sm font-semibold">{active?.name ?? "Markpath"}</span>
+        <ChevronDown aria-hidden className="shrink-0 text-muted" size={14} />
+        <span className="sr-only">Workspace menu</span>
+      </summary>
+      <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-panel border border-border bg-surface p-1 shadow-pop">
+        <p className="px-2 pb-1 pt-1.5 text-2xs font-medium text-muted">Workspaces</p>
+        {brands.length > 1
+          ? <form action={switchWorkspace}>{brands.map((b) => <button className={menuRow} key={b.id} name="brandId" type="submit" value={b.id}><span aria-hidden className={`${tile} bg-hover text-muted`}>{initial(b.name)}</span><span className="min-w-0 flex-1 truncate">{b.name}</span>{b.id === active?.id && <CheckIcon className="text-ink" size={14} />}<span className="sr-only">{b.id === active?.id ? " (current)" : ", switch to this workspace"}</span></button>)}</form>
+          : active && <p className={menuRow}><span aria-hidden className={`${tile} bg-hover text-muted`}>{initial(active.name)}</span><span className="min-w-0 flex-1 truncate">{active.name}</span><CheckIcon className="text-ink" size={14} /></p>}
+        <div className="my-1 border-t border-border" />
+        <Link className={`${menuRow} text-muted hover:text-ink`} href="/workspaces/new"><PlusIcon size={14} />New workspace</Link>
       </div>
-    </header>
-    <div id="content" tabIndex={-1}>{children}</div>
+    </details>
+    <MainNav pending={pending} />
+    <div className="mt-auto grid gap-3">
+    {setup && setup.requiredLeft > 0 && <Link className="block rounded-panel border border-border bg-surface px-3 py-2.5 hover:border-border-strong" href="/integrations">
+      <span className="flex items-center justify-between gap-2 text-sm font-medium">Getting started<span className="text-xs font-normal tabular-nums text-muted">{doneSteps}/{required}</span></span>
+      <span className="mt-0.5 block text-xs text-muted">{Math.round((doneSteps / Math.max(1, required)) * 100)}% done. Next: {setup.steps.find((s) => s.status !== "done" && !s.optional)?.title ?? "finish setup"}</span>
+      <span aria-hidden className="mt-2 block h-1 overflow-hidden rounded-full bg-hover"><span className="progress-fill block h-full w-full rounded-full bg-brand-solid" style={{ transform: `scaleX(${doneSteps / Math.max(1, required)})` }} /></span>
+    </Link>}
+    <div className="grid gap-px border-t border-border pt-3">
+      <p className="flex min-h-10 items-center gap-2 px-2 lg:min-h-8"><span aria-hidden className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-hover text-2xs font-semibold text-muted ring-1 ring-inset ring-border-strong">{initial(user.name || user.email)}</span><span className="min-w-0 truncate text-sm"><span className="sr-only">Signed in as </span>{user.name || user.email}</span></p>
+      <form action={logout}><button className={`${menuRow} text-muted hover:text-ink`} type="submit"><LogoutIcon size={16} />Sign out</button></form>
+    </div>
+    </div>
+  </div>;
+
+  return <div className="min-h-dvh">
+    <a className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-pop" href="#content">Skip to content</a>
+    <AppShell sidebar={sidebar} workspace={active?.name}>
+      <div id="content" tabIndex={-1}>{children}</div>
+    </AppShell>
   </div>;
 }

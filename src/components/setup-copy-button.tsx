@@ -14,8 +14,8 @@ export function SetupCopyButton({ value, label }: { value: string; label: string
   }
   return (
     <span className="inline-flex max-w-full flex-wrap items-center gap-2">
-      <code className="max-w-full break-all rounded-md border border-border bg-subtle px-2 py-1 font-mono text-[0.8125rem]">{value}</code>
-      <button aria-label={`Copy ${label}`} className={`inline-flex min-h-10 items-center gap-1.5 rounded-control border border-border-strong bg-surface px-3 text-sm font-medium shadow-card hover:bg-subtle ${focus}`} onClick={copy} type="button">{status === "Copied" ? <CheckIcon className="text-success" /> : <CopyIcon />}{status === "Copied" ? "Copied" : "Copy"}</button>
+      <code className="max-w-full break-all rounded-[5px] border border-border bg-subtle px-1.5 py-0.5 font-mono text-xs">{value}</code>
+      <button aria-label={`Copy ${label}`} className={`inline-flex min-h-10 lg:min-h-8 items-center gap-1.5 rounded-control border border-border-strong bg-surface px-3 text-sm font-medium hover:bg-hover ${focus}`} onClick={copy} type="button">{status === "Copied" ? <CheckIcon className="text-success" /> : <CopyIcon />}{status === "Copied" ? "Copied" : "Copy"}</button>
       <span aria-live="polite" className={`text-sm ${status === "Copied" ? "sr-only" : "text-muted"}`} role="status">{status}</span>
     </span>
   );

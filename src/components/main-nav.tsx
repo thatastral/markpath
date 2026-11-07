@@ -1,24 +1,40 @@
 "use client";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ActivityIcon, BrandIcon, EyeCheckIcon, HomeIcon, InboxIcon, PlugIcon } from "@/components/ui/icons";
 
-const links: Array<[string, string]> = [["Brand profile", "/brand"], ["Integrations", "/integrations"], ["Issues & approvals", "/issues"], ["Reviews", "/reviews"], ["Activity", "/activity"]];
+const links: Array<[string, string, ReactNode]> = [
+  ["Overview", "/", <HomeIcon key="i" />],
+  ["Issues & approvals", "/issues", <InboxIcon key="i" />],
+  ["Brand", "/brand", <BrandIcon key="i" />],
+  ["Reviews", "/reviews", <EyeCheckIcon key="i" />],
+  ["Activity", "/activity", <ActivityIcon key="i" />],
+  ["Integrations", "/integrations", <PlugIcon key="i" />],
+];
 
-export function Logo() {
-  return <span aria-hidden className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand-solid text-white shadow-card">
-    <svg fill="none" height="16" viewBox="0 0 24 24" width="16"><path d="M4 18V6l5 7 5-7v12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.25" /><circle cx="19" cy="17" fill="currentColor" r="2" /></svg>
+/** The Markpath mark: a path that ends in a checked point, on an ink tile. */
+export function Logo({ size = "md" }: { size?: "sm" | "md" }) {
+  const dims = size === "md" ? "h-6 w-6" : "h-5 w-5";
+  return <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-[6px] bg-ink text-surface ${dims}`}>
+    <svg fill="none" height="70%" viewBox="0 0 24 24" width="70%"><path d="M4 17.5l5-6 4 3.5 6.5-8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" /><circle cx="19.5" cy="7" fill="currentColor" r="2.6" /></svg>
   </span>;
 }
 
 export function HomeLink() {
   const path = usePathname();
-  return <Link aria-current={path === "/" ? "page" : undefined} className="-ml-1 inline-flex min-h-10 items-center gap-2 rounded-control px-1 font-semibold tracking-tight" href="/"><Logo />Markpath</Link>;
+  return <Link aria-current={path === "/" ? "page" : undefined} className="inline-flex min-h-10 items-center gap-2 rounded-control px-1 text-sm font-semibold tracking-tight" href="/"><Logo />Markpath</Link>;
 }
 
-export function MainNav() {
+/** Linear-style sidebar navigation: icon + label rows, the current page tinted, a count on Issues when approvals wait. */
+export function MainNav({ pending = 0 }: { pending?: number }) {
   const path = usePathname();
-  return <nav aria-label="Main" className="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-1">{links.map(([label, href]) => {
-    const on = path === href || path.startsWith(`${href}/`);
-    return <Link aria-current={on ? "page" : undefined} className={`inline-flex min-h-10 items-center rounded-control px-3 text-sm font-medium sm:min-h-9 ${on ? "bg-subtle text-ink" : "text-muted hover:bg-subtle hover:text-ink"}`} href={href} key={href}>{label}</Link>;
+  return <nav aria-label="Main" className="grid gap-px">{links.map(([label, href, icon]) => {
+    const on = href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
+    return <Link aria-current={on ? "page" : undefined} className={`group flex min-h-10 items-center gap-2.5 rounded-control px-2 text-sm lg:min-h-8 ${on ? "bg-hover font-medium text-ink" : "text-ink/85 hover:bg-hover hover:text-ink"}`} href={href} key={href}>
+      <span aria-hidden className={on ? "text-ink" : "text-muted group-hover:text-ink"}>{icon}</span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {href === "/issues" && pending > 0 && <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-solid px-1.5 text-2xs font-semibold tabular-nums text-white">{pending}<span className="sr-only"> waiting for approval</span></span>}
+    </Link>;
   })}</nav>;
 }
