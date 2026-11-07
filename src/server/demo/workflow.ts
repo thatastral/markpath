@@ -104,3 +104,19 @@ export async function completeDemoWorkflow() {
   const finished = finishVerification(demo.taskId);
   return { taskId: demo.taskId, status: finished.status, githubVerification, figmaVerification };
 }
+
+/** Gives a new "sample brand" workspace something to try straight away: sample code and design issues and a fix waiting for approval. */
+export async function stageSampleData(brandId: string, userId: string) {
+  const resources: DemoResources = {
+    github: createResource(brandId, "github", "Nexa web fixture", "fixture://nexa-web"),
+    figma: createResource(brandId, "figma", "Nexa Figma fixture", "fixture://nexa-figma"),
+  };
+  const [githubFindings, figmaSnapshot] = await Promise.all([scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")), readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8")]);
+  persistFindings(brandId, resources.github, githubFindings);
+  persistFindings(brandId, resources.figma, scanFigmaFixture(JSON.parse(figmaSnapshot)));
+  const task = createTask({ brandId, initiatedBy: userId, type: "brand_correction", description: "Fix the sample brand's old colour, typeface and corner radius in code and design", idempotencyKey: `sample-${brandId}`, agentName: "Brand Director" }).task;
+  addTaskResource(task.id, resources.github); addTaskResource(task.id, resources.figma);
+  transitionTask(task.id, "ASSESSING", "Brand Director"); transitionTask(task.id, "AUDITING", "Brand Director"); transitionTask(task.id, "PLAN_READY", "Brand Director");
+  requestApproval(task.id, userId, githubOperation(resources.github)); requestApproval(task.id, userId, figmaOperation(resources.figma)); transitionTask(task.id, "AWAITING_APPROVAL", "Brand Director");
+  return task.id;
+}

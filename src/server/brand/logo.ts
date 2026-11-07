@@ -14,4 +14,6 @@ export async function saveBrandLogo(brandId: string, userId: string, file: File)
   const magic = ext === "png" ? bytes.subarray(0, 4).toString("hex") === "89504e47" : ext === "jpg" ? bytes.subarray(0, 2).toString("hex") === "ffd8" : bytes.subarray(0, 4).toString() === "RIFF";
   if (!magic) throw new Error("That file is not a valid image of the type it claims to be.");
   db.prepare("INSERT INTO brand_assets (id, brand_id, kind, filename, storage_path, content_type, created_at, data_base64) VALUES (?, ?, 'logo', ?, 'database', ?, ?, ?)").run(randomUUID(), brandId, file.name.replace(/[^\w.-]/g, "-").slice(0, 80), file.type, new Date().toISOString(), bytes.toString("base64"));
+  const who = (db.prepare("SELECT name FROM users WHERE id = ?").get(userId) as { name: string } | undefined)?.name ?? "A person";
+  db.prepare("INSERT INTO agent_activity (id, brand_id, task_id, agent_name, activity_type, message_reference, status, created_at) VALUES (?, ?, NULL, ?, 'logo_uploaded', NULL, 'uploaded the reference logo', ?)").run(randomUUID(), brandId, who, new Date().toISOString());
 }

@@ -60,3 +60,14 @@ export function saveConfirmedBrand(brandId: string, userId: string, input: unkno
   approveSpec(brandId, userId, version.id);
   return version;
 }
+
+/** The approved brand values in the shape of the onboarding review form, for editing rules (creates a new version on save). */
+export function currentBrandDraft(brandId: string) {
+  const db = getDatabase(); initializeSchema(db);
+  const row = db.prepare("SELECT brand_specification, brand_version FROM brands WHERE id = ?").get(brandId) as { brand_specification: string | null; brand_version: string | null } | undefined;
+  if (!row?.brand_specification) return null;
+  const spec = JSON.parse(row.brand_specification) as { rules?: Array<{ id: string; expected: string; previous?: string }> };
+  const r = (id: string) => spec.rules?.find((x) => x.id === id);
+  if (!r("primary-colour")) return null;
+  return { primaryColour: r("primary-colour")?.expected ?? "", typeface: r("primary-typeface")?.expected ?? "", buttonRadius: r("button-radius")?.expected ?? "", previousColour: r("primary-colour")?.previous ?? "", previousTypeface: r("primary-typeface")?.previous ?? "", previousRadius: r("button-radius")?.previous ?? "", voice: r("brand-voice")?.expected ?? "", version: row.brand_version ?? "" };
+}

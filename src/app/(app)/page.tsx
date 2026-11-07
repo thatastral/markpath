@@ -5,13 +5,15 @@ import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { findUserById, listIntegrations } from "@/server/db/repositories";
 import { activeBrandForUser } from "@/server/workspace/active";
-import { getApprovals, getOverviewData, switchRoomReplyCount } from "@/server/dashboard/service";
+import { fixesAwaitingQa, getApprovals, getOverviewData, switchRoomReplyCount } from "@/server/dashboard/service";
 import { getGithubConfig } from "@/server/integrations/github";
 import { getSetupData } from "@/server/dashboard/setup";
 import { SetupOverview } from "@/components/setup-overview";
 import { activityText, agentLabel, connectionLabel, describeApproval, providerName, whenText } from "@/lib/labels";
 import { AgentAvatar, buttonClass, cardClass, EmptyState, linkClass, PageHeader, SectionHeading, StatusIcon, type Tone } from "@/components/ui/primitives";
 import { ActivityIcon, ChevronRight, ProviderIcon, ShieldIcon } from "@/components/ui/icons";
+import { pageTitle } from "./page-title";
+export async function generateMetadata() { return { title: await pageTitle("Overview") }; }
 
 export default async function OverviewPage() {
   const userId = await currentUserId();
@@ -21,11 +23,20 @@ export default async function OverviewPage() {
   if (!brand) return <main className="anim-rise"><PageHeader title="Welcome to Markpath" /><EmptyState action={<Link className={buttonClass("primary")} href="/workspaces/new">Create a workspace</Link>} icon={<ShieldIcon size={28} />} title="Create your first workspace">A workspace holds one brand: its rules, tools, chat room and history.</EmptyState></main>;
   const integrations = listIntegrations(db, brand.id); const overview = getOverviewData(db, brand.id); const roomReplies = switchRoomReplyCount(db, brand.id); const gh = getGithubConfig(brand.id);
   const setup = await getSetupData(db, brand.id, userId);
-  const metrics: Array<[string, number, string, string]> = [["Open issues", overview.findingCount, "/issues", "See the issues"], ["High priority", overview.criticalOrHighCount, "/issues?severity=high", "See high priority"], ["Waiting for approval", overview.pendingApprovalCount, "/issues", "Review and approve"], ["Fixes verified", overview.completedTaskCount, "/activity", "See what was done"]];
+  const awaitingQa = new Set(fixesAwaitingQa(db, brand.id).map((f) => f.resourceId)).size;
+  const n = (v: number, one: string, many: string) => `${v === 1 ? one : many}`;
+  // One unit everywhere: issues (grouped like the Issues page), with places as the secondary number.
+  const metrics: Array<[string, number, string, string]> = [
+    [`${n(overview.issueCount, "issue", "issues")} in ${overview.findingCount} ${n(overview.findingCount, "place", "places")}`, overview.issueCount, "/issues", "See the issues"],
+    ["high priority", overview.criticalOrHighCount, "/issues?severity=high", "See high priority"],
+    ["waiting for approval", overview.pendingApprovalCount, "/issues", "Review and approve"],
+    [n(overview.completedTaskCount, "fix verified", "fixes verified"), overview.completedTaskCount, "/activity", "See what was done"],
+    ...(awaitingQa > 0 ? [[n(awaitingQa, "fix waiting for QA", "fixes waiting for QA"), awaitingQa, "/issues", "See the issues"] as [string, number, string, string]] : []),
+  ];
   const toolText = (provider: string, status: string, mode: string) => {
     if (provider === "switch") return roomReplies > 0 ? "Connected. Agents reply in your room" : "Waiting for the first agent reply";
     if (provider === "github") return status === "connected" && gh?.repo ? `Connected to ${gh.repo}` : status === "connected" ? "Signed in. Choose a repository" : "Not connected";
-    if (provider === "canva" && mode !== "mcp") return "Not set up";
+    if (provider === "canva" && mode !== "mcp") return "Not connected";
     return connectionLabel(status);
   };
   const toolTone = (provider: string, status: string): Tone => {
@@ -44,7 +55,8 @@ export default async function OverviewPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
     <h2 className="text-2xl font-semibold tracking-tight">{greeting}{first && first.toLowerCase() !== "demo" ? `, ${first}` : ""}.</h2>
     <p className="mt-1 text-sm text-muted">Here's what's happening in {brand.name}.</p>
-    <nav aria-label="At a glance" className="mt-2 flex flex-wrap gap-x-1 text-sm text-muted">{metrics.map(([label, value, href, cta], idx) => <span className="inline-flex items-center" key={label}>{idx > 0 && <span aria-hidden className="mx-1.5 text-faint">·</span>}<Link aria-label={`${label}: ${value}. ${cta}`} className="inline-flex min-h-10 items-center gap-1 rounded-control hover:text-ink lg:min-h-6" href={href}><span className="font-medium tabular-nums text-ink">{value}</span> {label.toLowerCase()}</Link></span>)}</nav>
+    <nav aria-label="At a glance" className="mt-2 flex flex-wrap gap-x-1 text-sm text-muted">{metrics.map(([label, value, href, cta], idx) => <span className="inline-flex items-center" key={label}>{idx > 0 && <span aria-hidden className="mx-1.5 text-faint">·</span>}<Link aria-label={`${label}: ${value}. ${cta}`} className="inline-flex min-h-10 items-center gap-1 rounded-control hover:text-ink lg:min-h-6" href={href}><span className="font-medium tabular-nums text-ink">{value}</span> {label}</Link></span>)}</nav>
+    {awaitingQa > 0 && <p className="mt-1 text-sm text-muted">Ask @{setup.context.teamPrefix}-qa to check, or wait for the Director to ask.</p>}
 
     <section aria-labelledby="decide-heading" className="mt-10">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/issues">All issues<ChevronRight size={14} /></Link>} count={overview.pendingApprovalCount} id="decide-heading" title="Needs your decision" />
@@ -56,7 +68,7 @@ export default async function OverviewPage() {
         </Link></li>)}</ul>}
     </section>
 
-    <SetupOverview setup={setup} />
+    <SetupOverview setup={{ ...setup, steps: setup.steps.filter((s) => !s.optional) }} />
 
     <section aria-labelledby="recent-heading" className="mt-10">
       <SectionHeading action={<Link className={`${linkClass} text-sm`} href="/activity">See all<ChevronRight size={14} /></Link>} id="recent-heading" title="Recent activity" />

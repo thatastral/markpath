@@ -5,9 +5,11 @@ import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { activeBrandForUser } from "@/server/workspace/active";
 import { getActivity } from "@/server/dashboard/service";
-import { activityText, agentLabel, whenText, withCanvaLabels } from "@/lib/labels";
+import { activityText, agentLabel, replyExcerpt, whenText, withCanvaLabels } from "@/lib/labels";
 import { AgentAvatar, buttonClass, EmptyState, GroupBand, PageHeader, rowClass } from "@/components/ui/primitives";
 import { ActivityIcon, ChevronRight } from "@/components/ui/icons";
+import { pageTitle } from "../page-title";
+export async function generateMetadata() { return { title: await pageTitle("Activity") }; }
 
 const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -29,6 +31,7 @@ export default async function ActivityPage() {
               <p className="min-w-0 text-sm"><span className="font-medium">{agentLabel(r.agent_name)}</span> <span className="text-muted">{activityText(r.activity_type, r.status)}</span></p>
               <time className="shrink-0 text-xs tabular-nums text-muted" dateTime={r.created_at} title={whenText(r.created_at)}>{timeOf(r.created_at)}</time>
             </div>
+            {(() => { const quote = replyExcerpt(r.activity_type, r.status); return quote && <p className="mt-0.5 line-clamp-2 border-l-2 border-border pl-2 text-sm text-muted">“{withCanvaLabels(quote)}”</p>; })()}
             {r.task_description && <p className="mt-0.5 text-sm text-muted">{withCanvaLabels(r.task_description)}</p>}
             {r.message_reference && <details className="text-xs text-muted"><summary className="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-control hover:text-ink lg:min-h-7"><ChevronRight className="chev" size={12} />Technical details</summary><p className="mb-1 break-all font-mono">Chat message: {r.message_reference}</p></details>}
           </div>

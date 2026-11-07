@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 
 export type OverviewData = {
+  issueCount: number;
   findingCount: number;
   criticalOrHighCount: number;
   pendingApprovalCount: number;
@@ -35,8 +36,10 @@ function count(db: Database.Database, sql: string, brandId: string) {
 
 export function getOverviewData(db: Database.Database, brandId: string): OverviewData {
   return {
-    findingCount: count(db, "SELECT COUNT(*) AS count FROM findings WHERE brand_id = ? AND classification != 'compliant'", brandId),
-    criticalOrHighCount: count(db, "SELECT COUNT(*) AS count FROM findings WHERE brand_id = ? AND severity IN ('critical', 'high') AND classification != 'compliant'", brandId),
+    // Places = open findings; issues = the same rule in the same file grouped (what the Issues page shows).
+    findingCount: count(db, "SELECT COUNT(*) AS count FROM findings WHERE brand_id = ? AND status = 'open' AND classification != 'compliant'", brandId),
+    issueCount: count(db, "SELECT COUNT(*) AS count FROM (SELECT DISTINCT resource_id, rule_id, expected_value FROM findings WHERE brand_id = ? AND status = 'open' AND classification != 'compliant')", brandId),
+    criticalOrHighCount: count(db, "SELECT COUNT(*) AS count FROM (SELECT DISTINCT resource_id, rule_id, expected_value FROM findings WHERE brand_id = ? AND status = 'open' AND severity IN ('critical', 'high') AND classification != 'compliant')", brandId),
     pendingApprovalCount: count(db, "SELECT COUNT(*) AS count FROM approvals a JOIN tasks t ON t.id = a.task_id WHERE t.brand_id = ? AND a.decision = 'pending'", brandId),
     completedTaskCount: count(db, "SELECT COUNT(*) AS count FROM tasks WHERE brand_id = ? AND status IN ('COMPLETED', 'PARTIALLY_COMPLETED')", brandId),
     connectedPlatformCount: count(db, "SELECT COUNT(*) AS count FROM integrations WHERE brand_id = ? AND connection_status = 'connected'", brandId),
@@ -105,4 +108,10 @@ export function getTaskApprovalView(db: Database.Database, taskId: string, userI
   // Items only a person can resolve (contrast, tone, logo, placeholders) are not part of what is being approved; they are counted so the page can say so.
   const items = approvals.map((a) => ({ id: a.id, decision: a.decision, resource_name: a.resource_name, resource_ref: a.resource_ref, approved_action: a.approved_action, needsPerson: (db.prepare("SELECT COUNT(*) AS n FROM findings WHERE resource_id = ? AND status = 'open' AND classification = 'needs_review'").get(a.resource_id) as { n: number }).n }));
   return { task, isOwner: role?.role === "owner", items };
+}
+
+/** Resources where an approved fix was applied but Brand QA hasn't verified it yet (issues stay open until QA checks). */
+export function fixesAwaitingQa(db: Database.Database, brandId: string) {
+  return db.prepare(`SELECT DISTINCT e.resource_id AS resourceId, e.executed_at AS appliedAt FROM execution_records e JOIN tasks t ON t.id = e.task_id
+    WHERE t.brand_id = ? AND t.status NOT IN ('COMPLETED','PARTIALLY_COMPLETED','FAILED','REJECTED') AND e.resource_id IS NOT NULL`).all(brandId) as Array<{ resourceId: string; appliedAt: string }>;
 }

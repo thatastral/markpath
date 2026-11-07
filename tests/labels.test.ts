@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activityText, describeApproval, groupFindings, providerName, resourceLabel, reviewKindName, ruleName, taskStatusName, withCanvaLabels } from "../src/lib/labels";
+import { activityText, agentLabel, describeApproval, issueTitle, judgementText, openUrl, placeUrl, replyExcerpt, groupFindings, providerName, resourceLabel, reviewKindName, ruleName, taskStatusName, withCanvaLabels } from "../src/lib/labels";
 
 describe("plain-language labels", () => {
   it("describes a Figma approval as a sentence, and says plainly that a real file is edited", () => {
@@ -22,7 +22,7 @@ describe("plain-language labels", () => {
   it("never shows raw enums", () => {
     expect(providerName("canva")).toBe("Canva"); expect(ruleName("primary-colour")).toBe("Brand colour"); expect(taskStatusName("AWAITING_APPROVAL")).toBe("Waiting for approval");
     expect(activityText("task_transition", "AWAITING_APPROVAL")).toBe("moved the task to “Waiting for approval”"); expect(activityText("room_message", "posted in room")).toBe("replied in the chat room");
-    expect(activityText("approval_decision", "APPROVED (by chat reply, relayed by Brand Director; not login-verified)")).toBe("Approved (by chat reply)");
+    expect(activityText("approval_decision", "APPROVED (by chat reply, relayed by Brand Director; not login-verified)")).toBe("approved in chat");
   });
   it("names designs by what they are, since Canva only gives back an id", () => {
     expect(resourceLabel("canva", "DAHaL7l9y7c")).toBe("Canva design DAHaL7l9y7c");
@@ -56,5 +56,19 @@ describe("plain-language labels", () => {
   it("finds the place name in Canva evidence", () => {
     const row = { id: "1", provider: "canva", resource_name: "DAHaL7l9y7c", rule_id: "primary-colour", detected_value: "#164B9B", expected_value: "#2457F5", severity: "high", confidence: 1, evidence: "Found in the Canva design: CTA pill uses #164B9B.", recommended_action: "x", classification: "confirmed" };
     expect(groupFindings([row])[0].places).toEqual(["CTA pill"]);
+  });
+  it("links each issue to its file, read-only, and never invents a link", () => {
+    expect(openUrl("figma", "https://www.figma.com/design/abc")).toBe("https://www.figma.com/design/abc");
+    expect(openUrl("github", "fixture://nexa-web")).toBeNull();
+    expect(placeUrl("github", "https://github.com/jo/site", "src/app.css line 12")).toBe("https://github.com/jo/site/blob/HEAD/src/app.css#L12");
+    expect(placeUrl("figma", "https://www.figma.com/design/abc", "1:23 Button")).toBe("https://www.figma.com/design/abc?node-id=1-23");
+    expect(placeUrl("figma", "https://www.figma.com/design/abc", "Brand/Primary")).toBeNull();
+  });
+  it("names judgement items after the problem, and agents with one casing", () => {
+    expect(issueTitle({ rule: "needs-review", detected: "template placeholder URL" })).toBe("Leftover template text");
+    expect(issueTitle({ rule: "text-contrast", detected: "x" })).toBe("Text is too light");
+    expect(judgementText({ rule: "text-contrast", detected: "#98A2B3 on #FFFFFF, ratio 2.58:1", expected: "needs a person: minimum 4.5:1 for normal text" })).toBe("#98A2B3 on #FFFFFF is 2.58:1. Needs at least 4.5:1 for normal text.");
+    expect(agentLabel("Design Agent")).toBe("Design agent"); expect(agentLabel("Figma plugin")).toBe("Design agent"); expect(agentLabel("Human: Nexa Brand Owner")).toBe("Nexa Brand Owner");
+    expect(replyExcerpt("room_message", "posted in room")).toBeNull(); expect(replyExcerpt("room_message", "Found 6 issues.\nMore")).toBe("Found 6 issues.");
   });
 });

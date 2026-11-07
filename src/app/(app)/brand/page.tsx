@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUserId } from "@/server/auth/session";
 import { getDatabase } from "@/server/db/client";
@@ -13,6 +14,9 @@ import { FileDrop } from "@/components/ui/file-drop";
 import { approveVersion, extractFixture, uploadGuideline, uploadLogo } from "./actions";
 
 type PageProps = { searchParams: Promise<{ message?: string }> };
+import { pageTitle } from "../page-title";
+export async function generateMetadata() { return { title: await pageTitle("Brand rules") }; }
+
 export default async function BrandProfilePage({ searchParams }: PageProps) {
   const userId = await currentUserId(); if (!userId) redirect("/login");
   const db = getDatabase(); initializeSchema(db);
@@ -21,7 +25,7 @@ export default async function BrandProfilePage({ searchParams }: PageProps) {
   const message = (await searchParams).message;
   const logo = db.prepare("SELECT filename, created_at FROM brand_assets WHERE brand_id = ? AND kind = 'logo' ORDER BY created_at DESC LIMIT 1").get(brand.id) as { filename: string; created_at: string } | undefined;
   const sourceName = (t: string) => (t === "fixture" ? "Sample guideline" : /upload/i.test(t) ? "Uploaded guideline" : "Guideline");
-  const statusName = (t: string) => (t === "approved" ? "Approved" : t === "draft" || t === "pending" || t === "extracted" ? "Waiting for your approval" : t.charAt(0).toUpperCase() + t.slice(1).replaceAll("_", " "));
+  const statusName = (t: string) => (t === "approved" ? "In use" : t === "superseded" ? "Replaced" : t === "draft" || t === "pending" || t === "extracted" ? "Waiting for your approval" : t.charAt(0).toUpperCase() + t.slice(1).replaceAll("_", " "));
   const categoryName = (c: string) => ({ colour: "Colour", typography: "Type", component: "Component", logo: "Logo", voice: "Voice", accessibility: "Accessibility" } as Record<string, string>)[c] ?? c;
   return <main className="anim-rise">
     <PageHeader actions={<Badge tone="success"><span className="tabular-nums">Version {brand.brand_version}</span> active</Badge>} description="The agents check everything against the version you approve." title="Brand rules" />
@@ -29,7 +33,7 @@ export default async function BrandProfilePage({ searchParams }: PageProps) {
     {message && <div className="mb-6"><Notice role="status">{message}</Notice></div>}
     <section aria-labelledby="history-heading">
       <SectionHeading count={versions.length} description="Each version lists the values the agents expect." id="history-heading" title="Versions" />
-      <div className="mt-4 grid gap-4">{versions.length === 0 ? <EmptyState framed icon={<SwatchIcon size={28} />} title="No brand rules yet">Load the sample or upload your guideline, then approve the rules Markpath finds.</EmptyState> : versions.map((record, idx) => { const spec = brandSpecSchema.parse(JSON.parse(record.specification)); const approved = record.status === "approved";
+      <div className="mt-4 grid gap-4">{versions.length === 0 ? <EmptyState framed icon={<SwatchIcon size={28} />} title="No brand rules yet">Add your guideline, check the values Markpath finds, and save them.</EmptyState> : versions.map((record, idx) => { const spec = brandSpecSchema.parse(JSON.parse(record.specification)); const approved = record.status === "approved";
         const body = <div role="table" aria-label={`Version ${record.version} rules`}>
           <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1fr)] gap-4 border-b border-border bg-subtle px-4 py-2 text-xs font-medium text-muted sm:grid sm:px-5" role="row"><span role="columnheader">Rule</span><span role="columnheader">Value</span><span role="columnheader">Source</span></div>
           {spec.rules.map((rule) => <div className="grid gap-x-4 gap-y-1 border-b border-border px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1fr)] sm:items-center sm:px-5" key={rule.id} role="row">
@@ -43,10 +47,10 @@ export default async function BrandProfilePage({ searchParams }: PageProps) {
         return <article className={`relative overflow-hidden ${cardClass}`} key={record.id}>{!approved && <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-brand-solid" />}<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">{head}{!approved && <form action={approveVersion.bind(null, brand.id, record.id)}><SubmitButton className={buttonClass("primary")} pendingLabel="Approving…"><CheckIcon size={14} />Approve these rules</SubmitButton></form>}</div>{body}</article>; })}</div>
     </section>
     <section aria-labelledby="add-heading" className="mt-10">
-      <SectionHeading description="Markpath reads the rules out of it for you to approve. Markdown files only here for now." id="add-heading" title="Add a guideline" />
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <form action={extractFixture.bind(null, brand.id)} className={`${cardClass} flex min-w-0 flex-col justify-between gap-4 p-5`}><div><p className="text-sm font-medium">Try the sample</p><p className="mt-0.5 text-sm text-muted">The Nexa guideline, ready to review.</p></div><div><SubmitButton className={buttonClass("primary")} pendingLabel="Loading…">Load sample</SubmitButton></div></form>
-        <form action={uploadGuideline.bind(null, brand.id)} className={`${cardClass} flex min-w-0 flex-col justify-between gap-4 p-5`}><div className="grid gap-2"><label className="text-sm font-medium" htmlFor="guideline">Your guideline (.md file)</label><FileDrop accept=".md,.markdown" hint="Markdown only, up to 10 MB." id="guideline" maxBytes={10_000_000} name="guideline" required /></div><div><SubmitButton className={buttonClass("secondary")} pendingLabel="Uploading…"><UploadIcon size={14} />Upload guideline</SubmitButton></div></form>
+      <SectionHeading description="From a PDF, Markdown file, your website or a design link. You check the values before they're saved as a new version." id="add-heading" title="Update brand rules" />
+      <div className={`mt-4 ${cardClass} flex min-w-0 flex-wrap items-center justify-between gap-4 p-5`}>
+        <p className="min-w-0 text-sm text-muted">{versions.length ? "Edit the current values, or read them again from a new guideline." : "Add your guideline to get started."}</p>
+        <span className="flex flex-wrap gap-2">{versions.length > 0 && <Link className={buttonClass("secondary")} href="/onboarding?step=brand&edit=1">Edit rules</Link>}<Link className={buttonClass("primary")} href="/onboarding?step=brand&new=1"><UploadIcon size={14} />{versions.length ? "Add a new guideline" : "Add your guideline"}</Link></span>
       </div>
     </section>
     <section aria-labelledby="logo-heading" className="mt-10">

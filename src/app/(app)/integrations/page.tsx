@@ -24,6 +24,8 @@ import { BrandIcon, ChevronRight, EyeCheckIcon, ProviderIcon } from "@/component
 import { SubmitButton } from "@/components/ui/submit-button";
 import { UrlInput } from "@/components/ui/file-drop";
 import { runRepoAuditAction, saveCanvaDesignAction, saveWatchPullsAction, saveChatHandle, saveFigmaFileAction, saveTeamPrefix } from "./actions";
+import { pageTitle } from "../page-title";
+export async function generateMetadata() { return { title: await pageTitle("Integrations") }; }
 
 const label = "text-sm font-medium";
 const help = "text-muted";
@@ -39,7 +41,10 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
   const setup = await getSetupData(db, brand.id, userId);
   const { teamPrefix, chatHandle, github, figma, canva, switchReachable, roomReplies } = setup.context;
   const integrations = getIntegrations(db, brand.id);
-  const required = setup.steps.filter((s) => !s.optional).length;
+  const required = setup.steps.filter((s) => !s.optional).length; const optionalCount = setup.steps.length - required;
+  // One primary per page: the next unfinished required step. Everything else is secondary.
+  const nextKey = setup.steps.find((s) => !s.optional && s.status !== "done")?.key;
+  const cardLabel = (step: (typeof setup.steps)[number]) => step.status === "done" ? "Manage" : step.status === "needs_you" && (step.key === "figma" || step.key === "canva") ? "Edit" : step.key === "brand" || step.key === "check" ? "Set up" : "Connect";
 
   const actions: Record<SetupKey, ReactNode> = {
     brand: <Link className={setup.steps[0].status === "needs_you" ? setupUi.primary : setupUi.secondary} href="/brand">{setup.steps[0].status === "done" ? "Open brand rules" : setup.steps[0].status === "needs_you" ? "Review and approve rules" : "Upload your guideline"}</Link>,
@@ -50,7 +55,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><SetupExternalLink href={CONNECTORS}>Connect Figma in Claude</SetupExternalLink>{figma && <SetupExternalLink href={figma.url}>Open the file</SetupExternalLink>}</div>
       <form action={saveFigmaFileAction} className={field}>
       <label className={label} htmlFor="figma-link">Figma file link</label>
-      <div className={row}><UrlInput className="w-full sm:w-auto sm:flex-1" defaultValue={figma?.url ?? ""} site="figma" id="figma-link" name="link" placeholder="https://www.figma.com/design/…" /><SubmitButton className={setupUi.primary} pendingLabel="Saving…">Save Figma link</SubmitButton></div>
+      <div className={row}><UrlInput className="w-full sm:w-auto sm:flex-1" defaultValue={figma?.url ?? ""} site="figma" id="figma-link" name="link" placeholder="https://www.figma.com/design/…" /><SubmitButton className={setupUi.secondary} pendingLabel="Saving…">Save Figma link</SubmitButton></div>
       <span className={help}>{figma ? "To stop using this file, clear the link and save." : "Copy the file's address from your browser and paste it here."}</span>
       </form>
     </div>,
@@ -59,7 +64,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm"><SetupExternalLink href={CONNECTORS}>Connect Canva in Claude</SetupExternalLink>{canva && <SetupExternalLink href={canva.url}>Open the design</SetupExternalLink>}</div>
       <form action={saveCanvaDesignAction} className={field}>
       <label className={label} htmlFor="canva-link">Canva design link</label>
-      <div className={row}><UrlInput className="w-full sm:w-auto sm:flex-1" defaultValue={canva?.url ?? ""} site="canva" id="canva-link" name="link" placeholder="https://www.canva.com/design/…" /><SubmitButton className={setupUi.primary} pendingLabel="Saving…">Save Canva link</SubmitButton></div>
+      <div className={row}><UrlInput className="w-full sm:w-auto sm:flex-1" defaultValue={canva?.url ?? ""} site="canva" id="canva-link" name="link" placeholder="https://www.canva.com/design/…" /><SubmitButton className={setupUi.secondary} pendingLabel="Saving…">Save Canva link</SubmitButton></div>
       <span className={help}>{canva ? "To stop using this design, clear the link and save." : "Copy the design's address from your browser and paste it here."}</span>
       </form>
     </div>,
@@ -122,11 +127,11 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{shown.map((step) => <li className={`flex flex-col ${cardClass} p-4`} key={step.key}>
         <div className="flex items-start justify-between gap-3">
           <span aria-hidden className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border text-ink">{toolIcon(step.key)}</span>
-          <Link className={buttonClass(step.status === "done" ? "secondary" : step.status === "needs_you" ? "primary" : "secondary", "sm")} href={`#step-${step.n}`}>{step.status === "done" ? "Manage" : step.key === "brand" || step.key === "check" ? "Set up" : "Connect"}<span className="sr-only"> {step.title}</span></Link>
+          <Link className={buttonClass(step.key === nextKey ? "primary" : "secondary", "sm")} href={`#step-${step.n}`}>{cardLabel(step)}<span className="sr-only"> {step.title}</span></Link>
         </div>
         <h3 className="mt-3 text-sm font-semibold">{step.title}</h3>
         <p className="mt-0.5 line-clamp-2 text-sm text-muted">{step.why}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2 pt-1">{step.status === "done" ? <Badge tone="success">Connected</Badge> : <SetupStatusBadge status={step.status} />}{step.optional && step.status !== "optional" && <span className="text-xs text-muted">Optional</span>}</div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 pt-1">{step.status === "done" ? <Badge tone="success">{step.key === "brand" || step.key === "check" ? "Done" : "Connected"}</Badge> : <SetupStatusBadge status={step.status} />}{step.optional && step.status !== "optional" && <span className="text-xs text-muted">Optional</span>}</div>
       </li>)}</ul>
       {shown.length === 0 && <p className={`mt-4 ${cardClass} px-4 py-6 text-center text-sm text-muted`}>{notice.show === "connected" ? "Nothing is connected yet. Start with the first step below." : "Everything is set up. Nice work."}</p>}
     </section>
@@ -135,7 +140,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <div className="px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold tracking-tight" id="steps-heading">Setup steps{setup.requiredLeft === 0 && <Badge tone="success">You&apos;re all set</Badge>}</h2>
-          <p className="text-sm text-muted"><span className="tabular-nums">{required - setup.requiredLeft} of {required}</span> steps done</p>
+          <p className="text-sm text-muted"><span className="tabular-nums">{required - setup.requiredLeft} of {required}</span> steps done{optionalCount > 0 && <>, plus <span className="tabular-nums">{optionalCount}</span> optional</>}</p>
         </div>
         <div className="mt-3"><Progress label="Setup progress" max={required} value={required - setup.requiredLeft} /></div>
         <p className="mt-3 text-xs text-muted">Finished something in another app? Select Check again to update these.</p>

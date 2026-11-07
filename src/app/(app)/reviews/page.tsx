@@ -7,6 +7,8 @@ import { activeBrandForUser } from "@/server/workspace/active";
 import { resourceLabel, reviewKindName, ruleName, whenText, withCanvaLabels } from "@/lib/labels";
 import { Badge, buttonClass, EmptyState, PageHeader, rowClass, StatusIcon, type StatusKind, type Tone } from "@/components/ui/primitives";
 import { CheckIcon, ChevronRight, ProviderIcon, SearchIcon } from "@/components/ui/icons";
+import { pageTitle } from "../page-title";
+export async function generateMetadata() { return { title: await pageTitle("Reviews") }; }
 
 type Row = { id: string; kind: string; target: string; verdict: string; summary: string; details: string; created_at: string };
 type Item = { nodeName?: string; location?: string; file?: string; property?: string; rule?: string; detected?: string; expected?: string };

@@ -17,7 +17,16 @@ export type BrandDraft = z.infer<typeof brandDraftSchema>;
 export type DraftSuggestion = Partial<BrandDraft> & { colours: string[]; fonts: string[]; found: string[] };
 
 const hex = (v: string) => (v.length === 4 ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}` : v).toUpperCase();
-const greyish = (h: string) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return Math.max(r, g, b) - Math.min(r, g, b) < 24; };
+const greyish = (h: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const light = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
+  return Math.max(r, g, b) - Math.min(r, g, b) < 24 || light > 0.9 || light < 0.08; // greys, near-white tints and near-black are never the brand colour
+};
+/** "sohne-var", "inter_display", "__Inter_Fallback" → "Sohne", "Inter Display", "Inter". */
+export function prettyFont(raw: string) {
+  const f = raw.replace(/^__|_Fallback.*$|[-_ ]?(var|variable|vf|webfont|wght.*)$/i, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return f.split(" ").map((w) => (w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1))).join(" ");
+}
 const genericFonts = new Set(["sans-serif", "serif", "monospace", "system-ui", "inherit", "initial", "ui-sans-serif", "ui-serif", "ui-monospace", "-apple-system", "blinkmacsystemfont", "arial", "helvetica", "helvetica neue", "segoe ui", "roboto", "times new roman", "apple color emoji", "segoe ui emoji", "noto color emoji", "var"]);
 const near = (text: string, words: RegExp, value: RegExp) => { for (const line of text.split(/\r?\n/)) if (words.test(line)) { const m = value.exec(line); if (m) return m[1] ?? m[0]; } return undefined; };
 
@@ -33,7 +42,7 @@ export function suggestFromText(text: string, mode: "document" | "website" = "do
   const previousColourRaw = web ? undefined : near(text, /(previous|old|legacy|former|replaces|supersede)/i, /(#[0-9a-fA-F]{6})\b/);
   const previousColour = previousColourRaw && !greyish(hex(previousColourRaw)) ? previousColourRaw : undefined;
   const fontCounts = new Map<string, number>();
-  for (const m of text.matchAll(/font-family\s*:\s*([^;}{]+)/gi)) for (const part of m[1].split(",")) { const f = part.trim().replace(/^["']|["']$/g, "").replace(/!important/, "").trim(); if (f && !genericFonts.has(f.toLowerCase()) && !f.startsWith("var(") && !f.startsWith("__")) fontCounts.set(f, (fontCounts.get(f) ?? 0) + 1); }
+  for (const m of text.matchAll(/font-family\s*:\s*([^;}{]+)/gi)) for (const part of m[1].split(",")) { const f = part.trim().replace(/^["']|["']$/g, "").replace(/!important/, "").trim(); if (f && !genericFonts.has(f.toLowerCase()) && !f.startsWith("var(") && !/fallback|emoji|symbol|icon/i.test(f)) { const name = prettyFont(f); if (name && !genericFonts.has(name.toLowerCase())) fontCounts.set(name, (fontCounts.get(name) ?? 0) + 1); } }
   for (const m of text.matchAll(/fonts\.googleapis\.com\/css2?\?family=([A-Za-z+]+)/g)) { const f = m[1].replace(/\+/g, " "); fontCounts.set(f, (fontCounts.get(f) ?? 0) + 5); }
   const stop = new Set(["The", "This", "That", "Our", "Your", "Use", "And", "For", "With", "Primary", "Brand", "Main", "Body", "Heading"]);
   const labelledFontRaw = web ? undefined : near(text, /(primary|brand|main|heading|body)?\s*(typeface|font)\b(?!-)/i, /(?:typeface|font)[^:\n]*[:\-–]\s*`?["']?([A-Z][A-Za-z0-9]*(?: [A-Z][A-Za-z0-9]*){0,2})/);
@@ -66,9 +75,11 @@ function privateAddress(ip: string) {
 }
 async function safeFetch(url: URL, limit: number) {
   if (!/^https?:$/.test(url.protocol)) throw new Error("Use a web address that starts with https://.");
-  const host = url.hostname; const ips = isIP(host) ? [host] : (await lookup(host, { all: true })).map((r) => r.address);
+  const host = url.hostname;
+  let ips: string[];
+  try { ips = isIP(host) ? [host] : (await lookup(host, { all: true })).map((r) => r.address); } catch { throw new Error("We couldn't reach that website. Check the address, or upload your guideline instead."); }
   if (!ips.length || ips.some(privateAddress)) throw new Error("That address isn't a public website.");
-  const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Markpath brand reader", Accept: "text/html,text/css,*/*" } });
+  const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(5000), headers: { "User-Agent": "Markpath brand reader", Accept: "text/html,text/css,*/*" } });
   if (!res.ok) throw new Error(`The site answered with an error (${res.status}).`);
   const text = await res.text(); return text.slice(0, limit);
 }
@@ -77,7 +88,7 @@ async function safeFetch(url: URL, limit: number) {
 export async function suggestFromWebsite(address: string): Promise<DraftSuggestion & { title?: string }> {
   let url: URL; try { url = new URL(/^https?:\/\//i.test(address) ? address : `https://${address}`); } catch { throw new Error("That doesn't look like a web address."); }
   const html = await safeFetch(url, 600_000);
-  const sheets = [...html.matchAll(/<link[^>]+rel=["']?stylesheet["']?[^>]*>/gi)].map((m) => /href=["']([^"']+)["']/i.exec(m[0])?.[1]).filter(Boolean).slice(0, 5) as string[];
+  const sheets = [...html.matchAll(/<link[^>]+rel=["']?stylesheet["']?[^>]*>/gi)].map((m) => /href=["']([^"']+)["']/i.exec(m[0])?.[1]).filter(Boolean).slice(0, 4) as string[];
   const css = (await Promise.all(sheets.map((href) => safeFetch(new URL(href, url), 400_000).catch(() => "")))).join("\n");
   const themeColour = /<meta[^>]+name=["']theme-color["'][^>]+content=["'](#[0-9a-fA-F]{3,6})["']/i.exec(html)?.[1];
   const styles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n") + [...html.matchAll(/style=["']([^"']+)["']/gi)].map((m) => m[1]).join(";");

@@ -10,6 +10,15 @@ import { ChangeList } from "@/components/ui/change-list";
 import { CheckIcon, ChevronRight, ShieldIcon } from "@/components/ui/icons";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { decideTask } from "./actions";
+import { switchWorkspace } from "../../actions";
+import { activeBrandForUser } from "@/server/workspace/active";
+import { pageTitle } from "../../page-title";
+export async function generateMetadata({ params }: { params: Promise<{ taskId: string }> }) {
+  const { taskId } = await params; const userId = await currentUserId();
+  if (!userId || !/^[0-9a-f-]{36}$/i.test(taskId)) return { title: "Page not found · Markpath" };
+  const db = getDatabase(); initializeSchema(db);
+  return { title: getTaskApprovalView(db, taskId, userId) ? await pageTitle("Review changes") : "Page not found · Markpath" };
+}
 
 const uuid = /^[0-9a-f-]{36}$/i;
 export default async function ApprovePage({ params }: { params: Promise<{ taskId: string }> }) {
@@ -17,12 +26,15 @@ export default async function ApprovePage({ params }: { params: Promise<{ taskId
   const userId = await currentUserId(); if (!userId) redirect("/login");
   const db = getDatabase(); initializeSchema(db);
   const view = getTaskApprovalView(db, taskId, userId); if (!view) notFound();
+  const active = await activeBrandForUser(db, userId);
+  const elsewhere = active?.id !== view.task.brand_id ? (db.prepare("SELECT name FROM brands WHERE id = ?").get(view.task.brand_id) as { name: string } | undefined)?.name : undefined;
   const pending = view.items.filter((item) => item.decision === "pending").length;
   const rejected = view.items.some((i) => i.decision === "rejected");
   const state = pending > 0 ? "pending" : rejected ? "rejected" : "approved";
   return <main className="anim-rise">
     <PageHeader actions={<Badge tone={state === "pending" ? "brand" : state === "rejected" ? "danger" : "success"}>{taskStatusName(view.task.status)}</Badge>} description="The Brand Director asked for your approval in the chat room." title={pending > 0 ? "Review changes" : rejected ? "Changes rejected" : "Changes approved"} />
     <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:py-10">
+    {elsewhere && <form action={switchWorkspace} className={`mb-5 flex flex-wrap items-center justify-between gap-3 ${cardClass} px-4 py-3 text-sm`}><input name="brandId" type="hidden" value={view.task.brand_id} /><input name="next" type="hidden" value={`/approve/${view.task.id}`} /><span>This approval is in <span className="font-medium">{elsewhere}</span>, not the workspace you have open.</span><SubmitButton className={buttonClass("secondary", "sm")} pendingLabel="Switching…">Switch to {elsewhere}</SubmitButton></form>}
     <p className="flex items-start gap-2 text-sm text-muted"><ShieldIcon className="mt-0.5 shrink-0 text-muted" size={14} />You approve exactly the changes listed, one tool at a time. Nothing else changes.</p>
     <section aria-label="Changes" className="mt-5 grid gap-3">{view.items.map((item) => { const v = describeApproval(item.approved_action, item.resource_name, item.resource_ref); return <article className={`relative overflow-hidden ${cardClass} p-4 sm:p-5`} key={item.id}>
       {item.decision === "pending" && <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-brand-solid" />}

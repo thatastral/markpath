@@ -23,7 +23,7 @@ export function ChatApps() {
             <p className="mt-2"><SetupExternalLink button href={a.open.href}>{a.open.label}</SetupExternalLink></p>
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 marker:text-muted marker:tabular-nums">{a.steps.map((s) => <li key={s}>{s}</li>)}</ol>
             {a.discord && <SetupDiscordInvite />}
-            <p className="mb-2 mt-2 text-muted">Stuck? See the <SetupExternalLink href={SWITCH_GUIDES}>Switch messaging app guides</SetupExternalLink>. Not yet tested end to end.</p>
+            <p className="mb-2 mt-2 text-muted">Stuck? See the <SetupExternalLink href={SWITCH_GUIDES}>Switch messaging app guides</SetupExternalLink>.</p>
           </details>
         ))}
       </div>

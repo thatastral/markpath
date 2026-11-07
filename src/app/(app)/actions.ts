@@ -12,5 +12,13 @@ export async function switchWorkspace(formData: FormData) {
   const brandId = String(formData.get("brandId") ?? "");
   const db = getDatabase(); initializeSchema(db);
   if (findBrandForUser(db, brandId, userId)) await setActiveBrand(brandId);
-  redirect("/");
+  redirect(safeNext(String(formData.get("next") ?? "")));
+}
+
+/** Stay on the same page in the new workspace. Only known app sections, plus an approval link (it opens for any member). */
+const SECTIONS = ["/issues", "/brand", "/reviews", "/activity", "/integrations"];
+function safeNext(next: string): string {
+  const path = next.split(/[?#]/)[0];
+  if (/^\/approve\/[0-9a-f-]{36}$/i.test(path)) return path;
+  return SECTIONS.find((s) => path === s || path.startsWith(`${s}/`)) ? path : "/";
 }

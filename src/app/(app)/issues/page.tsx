@@ -4,10 +4,11 @@ import { currentUserId } from "@/server/auth/session";
 import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { activeBrandForUser } from "@/server/workspace/active";
-import { getApprovals, getFindings, type ApprovalRow } from "@/server/dashboard/service";
-import { describeApproval, groupFindings, providerName, resourceLabel, ruleName, severityName, whenText } from "@/lib/labels";
+import { fixesAwaitingQa, getApprovals, getFindings, type ApprovalRow } from "@/server/dashboard/service";
+import { describeApproval, groupFindings, issueTitle, judgementText, openLabel, placeUrl, providerName, resourceLabel, severityName, whenText } from "@/lib/labels";
+import { pageTitle } from "../page-title";
 import { AgentAvatar, Badge, buttonClass, cardClass, ChangeArrow, Count, EmptyState, GroupBand, PageHeader, rowClass, SectionHeading, SeverityIcon, severityTone, StatusIcon, ValuePill } from "@/components/ui/primitives";
-import { CheckIcon, ChevronRight, InboxIcon, ProviderIcon, SearchIcon } from "@/components/ui/icons";
+import { CheckIcon, ChevronRight, ExternalIcon, InboxIcon, ProviderIcon, SearchIcon } from "@/components/ui/icons";
 import { ChangeList } from "@/components/ui/change-list";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { decideTask } from "../approve/[taskId]/actions";
@@ -18,6 +19,8 @@ const chip = "inline-flex min-h-10 items-center rounded-control border px-2.5 te
 const primary = buttonClass("primary");
 const secondary = buttonClass("danger");
 const decisionName = (d: string) => ({ approved: "Approved", rejected: "Rejected", pending: "Waiting for you" } as Record<string, string>)[d] ?? `${d.charAt(0).toUpperCase()}${d.slice(1).replaceAll("_", " ").toLowerCase()}`;
+const openLink = "inline-flex min-h-10 items-center gap-1 rounded-control text-xs font-medium text-muted underline decoration-border-strong underline-offset-4 hover:text-ink hover:decoration-ink lg:min-h-7";
+export async function generateMetadata() { return { title: await pageTitle("Issues") }; }
 const via = (c: string | null) => (c === "chat_relayed" ? "by a chat reply" : c === "dashboard" ? "in the dashboard" : "");
 
 export default async function IssuesPage({ searchParams }: PageProps) {
@@ -25,6 +28,9 @@ export default async function IssuesPage({ searchParams }: PageProps) {
   const db = getDatabase(); initializeSchema(db); const brand = await activeBrandForUser(db, userId); if (!brand) redirect("/");
   const findings = getFindings(db, brand.id, { provider: filters.provider, severity: filters.severity, status: "open", classification: filters.view === "person" ? "needs_review" : undefined });
   const groups = groupFindings(findings);
+  // Fixes the Design agent applied that Brand QA hasn't verified yet. Issues stay open until QA checks them.
+  const qaIds = [...new Set(fixesAwaitingQa(db, brand.id).map((f) => f.resourceId))];
+  const awaitingQa = new Set(qaIds.length ? (db.prepare(`SELECT resource_name FROM resources WHERE brand_id = ? AND id IN (${qaIds.map(() => "?").join(",")})`).all(brand.id, ...qaIds) as Array<{ resource_name: string }>).map((r) => r.resource_name) : []);
   const approvals = getApprovals(db, brand.id); const pending = approvals.filter((a) => a.decision === "pending"); const decided = approvals.filter((a) => a.decision !== "pending");
   const pendingByTask = new Map<string, ApprovalRow[]>(); for (const a of pending) pendingByTask.set(a.task_id, [...(pendingByTask.get(a.task_id) ?? []), a]);
   const active = (k: "provider" | "severity" | "view", v: string) => filters[k] === v;
@@ -71,14 +77,17 @@ export default async function IssuesPage({ searchParams }: PageProps) {
               <span className="mt-0.5">{person ? <StatusIcon kind="person" /> : <SeverityIcon severity={g.severity} />}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                  <h3 className="min-w-0 text-sm"><span className="font-medium">{ruleName(g.rule)}</span> <span className="text-muted">{where}</span></h3>
-                  <span className="flex flex-wrap items-center gap-1.5">{person && <Badge tone="warning">Needs a person</Badge>}<Badge tone={severityTone(g.severity)}>{severityName(g.severity)}</Badge></span>
+                  <h3 className="min-w-0 text-sm"><span className="font-medium">{issueTitle(g)}</span> <span className="text-muted">{where}</span></h3>
+                  <span className="flex flex-wrap items-center gap-1.5">{person && <Badge tone="warning">Needs a person</Badge>}{!person && awaitingQa.has(g.resource) && <Badge tone="brand">Fix applied, waiting for QA</Badge>}<Badge tone={severityTone(g.severity)}>{severityName(g.severity)}</Badge></span>
                 </div>
-                {person ? <p className="mt-1 text-sm">{g.detected} <span className="text-muted">Expected: {g.expected}</span></p>
+                {person ? <p className="mt-1 text-sm">{judgementText(g)}</p>
                   : <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"><span className="text-muted">{g.count === 1 ? "1 place uses" : `${g.count} places use`}</span>{g.detected && <ValuePill tone="old" value={g.detected} />}<ChangeArrow /><span className="sr-only">It should be</span>{g.expected && <ValuePill tone="new" value={g.expected} />}</p>}
                 {g.confidence < 1 && <p className="mt-1 text-xs text-muted">Markpath is <span className="tabular-nums">{Math.round(g.confidence * 100)}%</span> sure. Check this one yourself.</p>}
-                {person && <p className="mt-1 text-xs text-muted">{g.recommended}</p>}
-                {g.places.length > 0 && <details className="text-sm"><summary className="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-control text-xs font-medium text-muted hover:text-ink lg:min-h-7"><ChevronRight className="chev" size={12} />Show {g.places.length === 1 ? "where" : `the ${g.places.length} places`}</summary><ul className="mb-1 ml-1.5 grid gap-0.5 border-l border-border pl-3 font-mono text-xs text-muted">{g.places.map((p) => <li key={p}>{p}</li>)}</ul></details>}
+                {person && <p className="mt-1 text-xs text-muted">Decide in {providerName(g.provider) === "Unassigned" ? "the file" : providerName(g.provider)}, then tell the Brand Director in the chat room.</p>}
+                <div className="flex flex-wrap items-center gap-x-4">
+                  {g.places.length > 0 && <details className="text-sm"><summary className="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-control text-xs font-medium text-muted hover:text-ink lg:min-h-7"><ChevronRight className="chev" size={12} />Show {g.places.length === 1 ? "where" : `the ${g.places.length} places`}</summary><ul className="mb-1 ml-1.5 grid gap-0.5 border-l border-border pl-3 font-mono text-xs text-muted">{g.places.map((p) => { const href = placeUrl(g.provider, g.url, p); return <li key={p}>{href ? <a className="underline decoration-border-strong underline-offset-4 hover:text-ink" href={href} rel="noopener noreferrer" target="_blank">{p}<span className="sr-only"> ({openLabel(g.provider)}, opens in a new tab)</span></a> : p}</li>; })}</ul></details>}
+                  {g.url && <a className={openLink} href={g.url} rel="noopener noreferrer" target="_blank">{openLabel(g.provider)}<ExternalIcon className="shrink-0 opacity-70" size={12} /><span className="sr-only"> (opens in a new tab)</span></a>}
+                </div>
               </div>
             </li>; })}</ul>
         </section>)}

@@ -3,10 +3,10 @@ import { Logo } from "@/components/main-nav";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import { readTheme } from "@/components/theme/read-theme";
 
-/** Linear-like centred card for sign-in, sign-up and other single-purpose pages. Theme switcher in the footer. */
+/** Linear-like card, top-anchored (fixed top offset) so validation messages never move it, for sign-in, sign-up and other single-purpose pages. Theme switcher in the footer. */
 export async function AuthFrame({ title, description, children, footer }: { title: string; description?: ReactNode; children: ReactNode; footer?: ReactNode }) {
   const theme = await readTheme();
-  return <main className="grid min-h-dvh place-items-center bg-canvas px-4 py-10">
+  return <main className="flex min-h-dvh justify-center bg-canvas px-4 pb-10 pt-12 sm:pt-[12vh]">
     <section className="anim-rise w-full max-w-[22.5rem]">
       <div className="mb-6 flex justify-center"><Logo /></div>
       <div className="rounded-card border border-border bg-surface p-6">

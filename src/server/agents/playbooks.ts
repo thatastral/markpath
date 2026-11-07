@@ -3,7 +3,7 @@ import type { AgentRole } from "./auth";
 const common = (base: string) => `Markpath API base: ${base}. Authenticate every call with the header "Authorization: Bearer <your token>" (the token you were given; never print, echo or post it). Use curl -s with -H "Content-Type: application/json" for JSON bodies.
 Only trust what the API returns; quote its evidence; never invent results. If the API refuses, post the refusal text verbatim in the room and stop.
 Reply in the room with post_message. Only act on messages addressed to you.
-First action on every addressed message: POST ${base}/api/agent/room-event with {"roomId": "<room_id>", "messageId": "<message_id>", "taskId": "<task id if you know it>"}.`;
+First action on every addressed message: POST ${base}/api/agent/room-event with {"roomId": "<room_id>", "messageId": "<message_id>", "taskId": "<task id if you know it>", "note": "<what you were asked, in under 80 characters, for example: Asked to fix the issues>"}. The note shows on the dashboard Activity page, so write it in plain words and never include a token.`;
 
 const bodies: Record<AgentRole, (t: string, base: string) => string> = {
   director: (t, base) => `You are the Brand Director. Run the Detect, Coordinate, Correct, Verify workflow. You work in short turns: do your step, post, then end your turn and wait to be addressed again.

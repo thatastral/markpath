@@ -45,7 +45,7 @@ export async function getSetupData(db: Database.Database, brandId: string, userI
   const chatHandle = (db.prepare("SELECT handle FROM chat_identities WHERE brand_id = ? AND user_id = ?").get(brandId, userId) as { handle: string } | undefined)?.handle ?? "";
   const health = await switchClient.health();
   const checks = count(db, "SELECT COUNT(*) AS n FROM tasks WHERE brand_id = ?", brandId) + count(db, "SELECT COUNT(*) AS n FROM vet_reports WHERE brand_id = ?", brandId);
-  const issues = count(db, "SELECT COUNT(*) AS n FROM findings WHERE brand_id = ? AND classification != 'compliant'", brandId);
+  const issues = count(db, "SELECT COUNT(*) AS n FROM (SELECT DISTINCT resource_id, rule_id, expected_value FROM findings WHERE brand_id = ? AND status = 'open' AND classification != 'compliant')", brandId);
   const prefix = brand.team_prefix;
 
   const rulesDone = brand.brand_version !== "0.0";

@@ -3,8 +3,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { GithubIcon, SpinnerIcon } from "@/components/ui/icons";
 import { buttonClass, inputClass } from "@/components/ui/primitives";
+import { CopyFallback, copyText } from "@/components/setup-copy-button";
+import { CheckIcon, CopyIcon } from "@/components/ui/icons";
 
-type Flow = { userCode: string; verificationUri: string; interval: number };
+type Flow = { userCode: string; verificationUri: string; interval: number; expiresIn?: number };
+const CANCELLED = "markpath-github-cancelled-code";
 type Repo = { fullName: string; private: boolean };
 type Job = "connect" | "repos" | "select" | "demo" | "disconnect";
 
@@ -27,25 +30,39 @@ export function GithubConnect({ login, repo }: { login: string | null; repo: str
   const [flow, setFlow] = useState<Flow | null>(null); const [job, setJob] = useState<Job | null>(null); const [message, setMessage] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
   const [repos, setRepos] = useState<Repo[] | null>(null); const [choice, setChoice] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null); const [now, setNow] = useState(() => Date.now());
+  const [copied, setCopied] = useState<"" | "yes" | "blocked">("");
   const busy = job !== null;
-  useEffect(() => { if (!login) api<{ pending: Flow | null }>("/api/integrations/github/start").then((r) => { if (r.pending) void connect(r.pending); }).catch(() => undefined); return () => { if (timer.current) clearTimeout(timer.current); }; // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!flow) return; const t = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(t); }, [flow]);
+  // A code the person cancelled stays cancelled after a reload (the server keeps it until it expires).
+  const wasCancelled = (code: string) => { try { return sessionStorage.getItem(CANCELLED) === code; } catch { return false; } };
+  useEffect(() => { if (!login) api<{ pending: Flow | null }>("/api/integrations/github/start").then((r) => { if (r.pending && !wasCancelled(r.pending.userCode)) void connect(r.pending); }).catch(() => undefined); return () => { if (timer.current) clearTimeout(timer.current); }; // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function connect(resume?: Flow) {
     setError(null); setJob("connect");
     try {
-      const started = resume ?? await api<Flow>("/api/integrations/github/start", { method: "POST" }); setFlow(started);
+      const started = resume ?? await api<Flow>("/api/integrations/github/start", { method: "POST" }); setFlow(started); setCopied("");
+      setExpiresAt(started.expiresIn ? Date.now() + started.expiresIn * 1000 : null); setNow(Date.now());
       const poll = async () => {
         try {
           const result = await api<{ status: string }>("/api/integrations/github/poll", { method: "POST" });
           if (result.status === "connected") { setFlow(null); setJob(null); router.refresh(); return; }
-          if (result.status === "expired" || result.status === "denied") { setFlow(null); setJob(null); setError(result.status === "denied" ? "GitHub sign-in was declined. Select Connect GitHub to try again." : "That code expired. Select Connect GitHub to get a new one."); return; }
+          if (result.status === "expired") { setMessage("That code expired, so here's a new one."); void connect(); return; }
+          if (result.status === "denied") { setFlow(null); setJob(null); setError(result.status === "denied" ? "GitHub sign-in was declined. Select Connect GitHub to try again." : "That code expired. Select Connect GitHub to get a new one."); return; }
           timer.current = setTimeout(poll, (started.interval + (result.status === "slow_down" ? 5 : 0)) * 1000);
         } catch (e) { setFlow(null); setJob(null); setError(e instanceof Error ? e.message : "Couldn't reach GitHub. Check your connection and try again."); }
       };
       timer.current = setTimeout(poll, started.interval * 1000);
     } catch (e) { setJob(null); setError(e instanceof Error ? e.message : "Couldn't start GitHub sign-in. Try again."); }
   }
+  function cancel() {
+    if (timer.current) clearTimeout(timer.current);
+    try { if (flow) sessionStorage.setItem(CANCELLED, flow.userCode); } catch { /* storage blocked: a reload resumes the code, which is harmless */ }
+    setFlow(null); setJob(null); setCopied("");
+  }
+  async function copyCode() { if (!flow) return; if (await copyText(flow.userCode)) { setCopied("yes"); setTimeout(() => setCopied((c) => (c === "yes" ? "" : c)), 2000); } else setCopied("blocked"); }
+  const minutesLeft = expiresAt ? Math.max(1, Math.ceil((expiresAt - now) / 60_000)) : null;
   async function loadRepos() { setError(null); setJob("repos"); try { const r = await api<{ repos: Repo[] }>("/api/integrations/github/repos"); setRepos(r.repos); setChoice(r.repos[0]?.fullName ?? ""); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't load your repositories. Try again."); } setJob(null); }
   async function select() { setError(null); setJob("select"); try { const r = await api<{ repo: string }>("/api/integrations/github/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo: choice }) }); setMessage(`Now using ${r.repo}. Approved fixes open as pull requests there.`); setRepos(null); router.refresh(); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't select that repository. Try again."); } setJob(null); }
   async function demoRepo() { setError(null); setJob("demo"); setMessage(null); try { const r = await api<{ repo: string }>("/api/integrations/github/demo-repo", { method: "POST" }); setMessage(`Created ${r.repo} and selected it.`); router.refresh(); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't create the sample repository. Try again."); } setJob(null); }
@@ -56,9 +73,16 @@ export function GithubConnect({ login, repo }: { login: string | null; repo: str
     {flow && <div className="anim-rise rounded-control border border-border bg-subtle p-4">
       <ol className="grid gap-2">
         <li><span className="tabular-nums text-muted">1.</span> Open <a className="font-medium text-brand underline underline-offset-4" href={flow.verificationUri} rel="noreferrer" target="_blank">{flow.verificationUri.replace(/^https?:\/\//, "")}<span className="sr-only"> (opens in a new tab)</span></a></li>
-        <li className="flex flex-wrap items-center gap-x-2 gap-y-1"><span><span className="tabular-nums text-muted">2.</span> Enter this code:</span><strong className="select-all rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-base tabular-nums tracking-widest">{flow.userCode}</strong></li>
+        <li className="flex flex-wrap items-center gap-x-2 gap-y-1"><span><span className="tabular-nums text-muted">2.</span> Enter this code:</span><strong className="select-all rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-base tabular-nums tracking-widest">{flow.userCode}</strong>
+          <button aria-label="Copy the GitHub code" className={buttonClass("secondary", "sm")} onClick={copyCode} type="button">{copied === "yes" ? <><CheckIcon className="text-success" size={14} />Copied</> : <><CopyIcon size={14} />Copy</>}</button>
+          <span aria-live="polite" className="sr-only" role="status">{copied === "yes" ? "Copied" : ""}</span></li>
       </ol>
-      <p className="mt-3 flex items-center gap-2 text-muted" role="status"><SpinnerIcon className="text-brand" />Waiting for you to approve on GitHub…</p>
+      {copied === "blocked" && <CopyFallback label="GitHub code" rows={1} text={flow.userCode} />}
+      <p className="mt-3 text-xs text-muted">The code proves it&apos;s you, so Markpath can open pull requests without ever seeing your GitHub password. {minutesLeft ? `It expires in about ${minutesLeft} min.` : "Codes expire after 15 minutes."} If it expires, you&apos;ll get a new one.</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-muted" role="status"><SpinnerIcon className="text-brand" />Waiting for you to approve on GitHub…</p>
+        <button className={buttonClass("ghost", "sm")} onClick={cancel} type="button">Cancel</button>
+      </div>
     </div>}
     {login && <div><p className="min-w-0">Signed in as <strong className="font-medium">{login}</strong>{repo ? <> · <span className="text-muted">repository</span> <strong className="font-medium">{repo}</strong></> : <span className="text-muted"> · choose a repository next</span>}</p>
       <div className="mt-2 flex flex-wrap gap-2">

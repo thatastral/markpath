@@ -1,3 +1,4 @@
+import { stageSampleData } from "@/server/demo/workflow";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { getDatabase } from "@/server/db/client";
@@ -15,6 +16,6 @@ export async function createWorkspace(userId: string, input: z.infer<typeof work
   createIntegrationPlaceholder(db, brand.id, "canva", "disabled"); createIntegrationPlaceholder(db, brand.id, "switch", "not_configured");
   if (input.chatHandle) db.prepare("INSERT OR IGNORE INTO chat_identities (id, brand_id, user_id, handle, created_at) VALUES (?, ?, ?, ?, ?)").run(randomUUID(), brand.id, userId, input.chatHandle.replace(/^@/, ""), new Date().toISOString());
   if (input.demoData) db.prepare("UPDATE brands SET is_demo = 1 WHERE id = ?").run(brand.id);
-  if (input.demoData) { const version = await ingestFixtureGuideline(brand.id, userId); approveSpec(brand.id, userId, version.id); }
+  if (input.demoData) { const version = await ingestFixtureGuideline(brand.id, userId); approveSpec(brand.id, userId, version.id); await stageSampleData(brand.id, userId); }
   return brand;
 }

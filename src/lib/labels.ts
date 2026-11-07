@@ -1,13 +1,27 @@
 // Plain-language labels for the dashboard. The database keeps machine values; people see these.
 const PROVIDERS: Record<string, string> = { github: "GitHub", figma: "Figma", canva: "Canva", switch: "Chat room" };
 export const providerName = (p?: string | null) => (p ? PROVIDERS[p] ?? p : "Unassigned");
-const RULES: Record<string, string> = { "primary-colour": "Brand colour", "primary-typeface": "Typeface", "button-radius": "Corner radius", "text-contrast": "Text contrast", "brand-voice": "Tone of voice", "logo-usage": "Logo", "needs-review": "Needs a person" };
+const RULES: Record<string, string> = { "primary-colour": "Brand colour", "primary-typeface": "Typeface", "button-radius": "Corner radius", "text-contrast": "Text contrast", "brand-voice": "Tone of voice", "logo-usage": "Logo", "needs-review": "Check by hand" };
 export const ruleName = (id: string) => RULES[id] ?? id.replaceAll("-", " ");
 export const severityName = (s: string) => ({ high: "High priority", medium: "Medium priority", low: "Low priority" } as Record<string, string>)[s] ?? s;
 const TASK: Record<string, string> = { RECEIVED: "Received", ASSESSING: "Looking into it", AUDITING: "Checking", PLAN_READY: "Plan ready", AWAITING_APPROVAL: "Waiting for approval", APPROVED: "Approved", IMPLEMENTING: "Applying the changes", VERIFYING: "Being verified", COMPLETED: "Done and verified", PARTIALLY_COMPLETED: "Partly done", FAILED: "Failed", REJECTED: "Rejected" };
 export const taskStatusName = (s: string) => TASK[s] ?? s.replaceAll("_", " ").toLowerCase();
 export const whenText = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "not yet");
-export const agentLabel = (name: string) => (name === "Figma plugin" ? "Design agent" : name);
+/** One name per agent, one casing: "Figma plugin" and "Design Agent" are both the Design agent; "Human: Jo" is Jo. */
+export const agentLabel = (name: string) => {
+  const n = name.replace(/^Human:\s*/i, "").trim();
+  if (/^figma plugin$/i.test(n) || /^design agent$/i.test(n)) return "Design agent";
+  if (/^brand director$/i.test(n)) return "Brand Director";
+  if (/^brand qa$/i.test(n)) return "Brand QA";
+  return n || name;
+};
+/** A short excerpt of what an agent said, when the activity row carries one (not the generic "posted in room"). */
+export const replyExcerpt = (type: string, status: string): string | null => {
+  if (type !== "room_message") return null;
+  const first = status.split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? "";
+  if (!first || /^posted in (the )?room$/i.test(first)) return null;
+  return first.length > 140 ? `${first.slice(0, 137)}…` : first;
+};
 /** A Canva design id, which is all the Canva connector gives back (no title). */
 export const isCanvaId = (name: string) => /^DA[A-Za-z0-9_-]{8,}$/.test(name);
 const kindOf = (kind?: string | null) => { const k = (kind ?? "").toLowerCase().split(/[_:-]/)[0]; return k === "gh" ? "github" : k; };
@@ -22,7 +36,7 @@ export function resourceLabel(kind: string | null | undefined, name: string): st
 }
 /** Free text from agents can mention a bare Canva id; name it as a Canva design. Needs a lowercase letter so words like "DASHBOARDS" are left alone; ids inside URLs are left alone too. */
 export const withCanvaLabels = (text: string) => text.replace(/(?:Canva design )?["“]?(?<![\w/])(DA(?=[\w-]*[a-z])[A-Za-z0-9_-]{8,})(?![\w-])["”]?/g, (_m, id: string) => `Canva design ${id}`);
-export const connectionLabel = (status: string) => ({ connected: "Connected", configured: "Saved, not read yet", not_connected: "Not connected", disabled: "Not set up", error: "Needs attention" } as Record<string, string>)[status] ?? status.replaceAll("_", " ");
+export const connectionLabel = (status: string) => ({ connected: "Connected", configured: "Saved, not read yet", not_connected: "Not connected", disabled: "Not connected", error: "Needs attention" } as Record<string, string>)[status] ?? status.replaceAll("_", " ");
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const NOUN: Record<string, [string, string]> = { colour: ["colour", "colours"], typeface: ["font", "fonts"], radius: ["corner radius", "corner radii"] };
@@ -42,16 +56,17 @@ export function describeApproval(approvedAction: string, resourceName: string, r
   return { kind: "other", target: resourceName, heading: resourceLabel(resourceRef, resourceName), summary: operation ? `Run ${operation.replaceAll("_", " ")}.` : "Apply an approved change.", changes, whatHappens: "Only this exact change is applied." };
 }
 
-export type FindingRowLike = { id: string; provider: string | null; resource_name: string; rule_id: string; detected_value: string | null; expected_value: string | null; severity: string; confidence: number; evidence: string; recommended_action: string; classification: string };
-export type FindingGroup = { key: string; provider: string | null; resource: string; rule: string; classification: string; severity: string; detected: string | null; expected: string | null; places: string[]; count: number; confidence: number; recommended: string };
+export type FindingRowLike = { id: string; provider: string | null; resource_name: string; resource_url?: string | null; rule_id: string; detected_value: string | null; expected_value: string | null; severity: string; confidence: number; evidence: string; recommended_action: string; classification: string };
+export type FindingGroup = { key: string; provider: string | null; resource: string; rule: string; classification: string; severity: string; detected: string | null; expected: string | null; places: string[]; count: number; confidence: number; recommended: string; url: string | null };
 /** Several places with the same problem become one card with a list of places. */
 export function groupFindings(rows: FindingRowLike[]): FindingGroup[] {
   const groups = new Map<string, FindingGroup>();
   for (const f of rows) {
-    const key = [f.provider, f.resource_name, f.rule_id, f.detected_value, f.expected_value, f.classification].join("|");
+    // Same unit as the Overview count: one issue per place (resource) + rule + expected value.
+    const key = [f.provider, f.resource_name, f.rule_id, f.expected_value].join("|");
     const ev = f.evidence.replace(/^Found in [^:]{1,60}:\s*/, ""); // "Found in the Canva design: CTA pill uses #164B9B." → "CTA pill"
     const place = (/^([^:]{1,80}):/.exec(ev)?.[1] ?? /^(.{1,80}?) uses\b/.exec(ev)?.[1] ?? ev.slice(0, 80)).trim();
-    const g = groups.get(key) ?? { key, provider: f.provider, resource: f.resource_name, rule: f.rule_id, classification: f.classification, severity: f.severity, detected: f.detected_value, expected: f.expected_value, places: [], count: 0, confidence: f.confidence, recommended: f.recommended_action };
+    const g = groups.get(key) ?? { key, provider: f.provider, resource: f.resource_name, rule: f.rule_id, classification: f.classification, severity: f.severity, detected: f.detected_value, expected: f.expected_value, places: [], count: 0, confidence: f.confidence, recommended: f.recommended_action, url: openUrl(f.provider, f.resource_url ?? null, f.resource_name) };
     g.count++; if (!g.places.includes(place)) g.places.push(place); g.confidence = Math.min(g.confidence, f.confidence); groups.set(key, g);
   }
   return [...groups.values()];
@@ -67,11 +82,56 @@ export function activityText(type: string, status: string): string {
     case "task_received": return "received a request";
     case "task_transition": return `moved the task to “${taskStatusName(status)}”`;
     case "approval_requested": return "asked for approval";
-    case "approval_decision": return status.toLowerCase().replace(/^(\w)/, (c) => c.toUpperCase()).replace(/\(by chat reply.*$/i, "(by chat reply)").trim();
+    case "approval_decision": { const verb = (/^\s*(\w+)/.exec(status)?.[1] ?? "decided").toLowerCase(); return /by chat reply/i.test(status) ? `${verb} in chat` : /dashboard/i.test(status) ? `${verb} in the dashboard` : verb; }
     case "plugin_inspection": return `inspected a design: ${withCanvaLabels(status)}`;
     case "plugin_execution": return `applied the approved change: ${withCanvaLabels(status)}`;
     case "resource_transition": return `${status === "COMPLETED" ? "verified" : status === "FAILED" ? "could not verify" : "updated"} a resource`;
     case "vet": { const m = /^(.+?) review: (.*)$/s.exec(status); return m ? `finished a ${reviewKindName(m[1]).toLowerCase().replace(/^(figma|canva|github)/, (p) => providerName(p))}: ${withCanvaLabels(m[2])}` : withCanvaLabels(status); }
     default: return `${type.replaceAll("_", " ")}${status ? `: ${taskStatusName(status)}` : ""}`;
   }
+}
+
+/** "Open in Figma / Canva / GitHub" target for a resource, read-only. Null when we can't build a real link. */
+export function openUrl(provider: string | null, resourceUrl: string | null, resourceName = ""): string | null {
+  const url = resourceUrl && /^https:\/\//.test(resourceUrl) ? resourceUrl : null;
+  if (provider === "canva" && !url && isCanvaId(resourceName)) return `https://www.canva.com/design/${resourceName}/view`;
+  if (!url) return null;
+  if (provider === "figma" && !/figma\.com\//.test(url)) return null;
+  if (provider === "canva" && !/canva\.com\//.test(url)) return null;
+  if (provider === "github" && !/github\.com\/[^/]+\/[^/]+/.test(url)) return null;
+  return url;
+}
+/** Per place: a Figma node ("1:23") or a GitHub file and line ("src/a.css line 12" or "src/a.css:12"). Null when the place has neither. */
+export function placeUrl(provider: string | null, baseUrl: string | null, place: string): string | null {
+  if (!baseUrl) return null;
+  if (provider === "figma") {
+    const node = /\b(\d+[:-]\d+)\b/.exec(place)?.[1];
+    if (!node) return null;
+    const u = new URL(baseUrl); u.searchParams.set("node-id", node.replace(":", "-")); return u.toString();
+  }
+  if (provider === "github") {
+    const m = /^([\w./@-]+\.[\w]+)(?:(?: line |:)(\d+))?$/.exec(place.trim());
+    if (!m) return null;
+    const repo = /^(https:\/\/github\.com\/[^/]+\/[^/#?]+)/.exec(baseUrl)?.[1];
+    if (!repo) return null;
+    return `${repo.replace(/\.git$/, "")}/blob/HEAD/${m[1].split("/").map(encodeURIComponent).join("/")}${m[2] ? `#L${m[2]}` : ""}`;
+  }
+  return null;
+}
+export const openLabel = (provider: string | null) => (provider === "figma" ? "Open in Figma" : provider === "canva" ? "Open in Canva" : provider === "github" ? "Open in GitHub" : "Open");
+
+/** The title of an issue: named after the problem, never "Needs a person" (that's a badge). */
+export function issueTitle(g: Pick<FindingGroup, "rule" | "detected">): string {
+  if (g.rule === "needs-review" && g.detected) { const d = g.detected.trim(); return /placeholder|template/i.test(d) ? "Leftover template text" : `${d.charAt(0).toUpperCase()}${d.slice(1)}`; }
+  if (g.rule === "text-contrast") return "Text is too light";
+  return ruleName(g.rule);
+}
+/** One plain sentence for an item a person has to judge, e.g. "#98A2B3 on #FFFFFF is 2.58:1. Needs at least 4.5:1 for normal text." */
+export function judgementText(g: Pick<FindingGroup, "rule" | "detected" | "expected">): string {
+  const expected = (g.expected ?? "").replace(/^needs a person:\s*/i, "").replace(/\s*\(needs a person\)\s*$/i, "").trim();
+  const ratio = /^(.*?),?\s*ratio\s*([\d.]+:1)$/i.exec(g.detected ?? "");
+  const min = /minimum\s+([\d.]+:1)(.*)$/i.exec(expected);
+  if (ratio && min) return `${ratio[1].trim()} is ${ratio[2]}. Needs at least ${min[1]}${min[2] ? min[2].replace(/\s+$/, "") : ""}.`;
+  if (/placeholder|template/i.test(g.detected ?? "")) return `Found ${g.detected}. ${expected ? `${expected.charAt(0).toUpperCase()}${expected.slice(1)}.` : ""}`.trim();
+  return [g.detected, expected && `Expected: ${expected}`].filter(Boolean).join(". ");
 }

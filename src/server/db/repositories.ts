@@ -64,7 +64,10 @@ export function approveBrandSpecVersion(db: Database.Database, input: { id: stri
   if (!version) return false;
   const timestamp = now();
   const transaction = db.transaction(() => {
+    db.prepare("UPDATE brand_spec_versions SET status = 'superseded' WHERE brand_id = ? AND status = 'approved' AND id != ?").run(input.brandId, version.id); // only one version is in force
     db.prepare("UPDATE brand_spec_versions SET status = 'approved', approved_at = ?, approved_by = ? WHERE id = ?").run(timestamp, input.userId, version.id);
+    const who = (db.prepare("SELECT name FROM users WHERE id = ?").get(input.userId) as { name: string } | undefined)?.name ?? "A person";
+    db.prepare("INSERT INTO agent_activity (id, brand_id, task_id, agent_name, activity_type, message_reference, status, created_at) VALUES (?, ?, NULL, ?, 'brand_rules_approved', NULL, ?, ?)").run(randomUUID(), input.brandId, who, `approved brand rules v${version.version}`, timestamp);
     db.prepare("UPDATE brands SET brand_specification = ?, brand_version = ?, updated_at = ? WHERE id = ?").run(version.specification, version.version, timestamp, input.brandId);
   });
   transaction();

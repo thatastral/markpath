@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/ui/primitives";
 import { WorkspaceForm } from "./workspace-form";
 
+export const metadata = { title: "New workspace · Markpath" };
+
 export default function NewWorkspacePage() {
   return <main className="anim-rise">
     <PageHeader description="A workspace holds one brand: its rules, tools, chat room and history." title="New workspace" />
