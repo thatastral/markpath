@@ -1,6 +1,10 @@
 import type Database from "better-sqlite3";
 
+const initialized = new WeakSet<object>();
+/** Creates or upgrades the tables once per connection (a remote database would otherwise pay for it on every call). */
 export function initializeSchema(db: Database.Database) {
+  if (initialized.has(db)) return;
+  initialized.add(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS brands (
       id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
@@ -125,4 +129,6 @@ export function initializeSchema(db: Database.Database) {
   if (!brandColumns.some((c) => c.name === "team_prefix")) db.exec("ALTER TABLE brands ADD COLUMN team_prefix TEXT NOT NULL DEFAULT 'markpath'");
   const tokenColumns = db.prepare("PRAGMA table_info(api_tokens)").all() as Array<{ name: string }>;
   if (!tokenColumns.some((column) => column.name === "token_enc")) db.exec("ALTER TABLE api_tokens ADD COLUMN token_enc TEXT");
+  const assetColumns = db.prepare("PRAGMA table_info(brand_assets)").all() as Array<{ name: string }>;
+  if (!assetColumns.some((column) => column.name === "data_base64")) db.exec("ALTER TABLE brand_assets ADD COLUMN data_base64 TEXT");
 }

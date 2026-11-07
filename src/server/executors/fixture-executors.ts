@@ -8,7 +8,7 @@ import { initializeSchema } from "@/server/db/schema";
 import { consumeApproval, isApprovedOperation, type ProposedOperation } from "@/server/tasks/service";
 
 const now = () => new Date().toISOString();
-const fixtureRoot = () => process.env.MARKPATH_FIXTURE_WORKSPACE ?? join(process.cwd(), "data", "fixture-workspaces");
+const fixtureRoot = () => process.env.MARKPATH_FIXTURE_WORKSPACE ?? (process.env.VERCEL ? "/tmp/markpath/fixture-workspaces" : join(process.cwd(), "data", "fixture-workspaces"));
 function command(command: string, args: string[], cwd: string) { return execFileSync(command, args, { cwd, encoding: "utf8" }).trim(); }
 function record(input: { taskId: string; resourceId: string; operation: string; evidence: Record<string, unknown> }) {
   const db = getDatabase(); initializeSchema(db);

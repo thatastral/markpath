@@ -16,8 +16,9 @@
     "demo:reset:agents": "tsx src/server/demo/cli.ts reset --agents"
   },
   "dependencies": {
-    "better-sqlite3": "^12.4.1",
     "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.4.1",
+    "libsql": "^0.5.29",
     "next": "^16.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

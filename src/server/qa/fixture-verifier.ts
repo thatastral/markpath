@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 
-const workspace = (key?: string) => { const root = process.env.MARKPATH_FIXTURE_WORKSPACE ?? join(process.cwd(), "data", "fixture-workspaces"); return key ? join(root, key) : root; };
+const workspace = (key?: string) => { const root = process.env.MARKPATH_FIXTURE_WORKSPACE ?? (process.env.VERCEL ? "/tmp/markpath/fixture-workspaces" : join(process.cwd(), "data", "fixture-workspaces")); return key ? join(root, key) : root; };
 function git(args: string[], cwd: string) { return execFileSync("git", args, { cwd, encoding: "utf8" }).trim(); }
 function save(taskId: string, resourceId: string, operation: string, evidence: Record<string, unknown>) { const db = getDatabase(); initializeSchema(db); db.prepare(`INSERT INTO execution_records (id, task_id, resource_id, operation, result, evidence, mode, executed_at) VALUES (?, ?, ?, ?, ?, ?, 'fixture', ?)`)
   .run(randomUUID(), taskId, resourceId, operation, evidence.verified ? "verified" : "failed_verification", JSON.stringify(evidence), new Date().toISOString()); }

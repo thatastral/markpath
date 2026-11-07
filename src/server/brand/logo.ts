@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { getDatabase } from "@/server/db/client";
 import { initializeSchema } from "@/server/db/schema";
 import { findBrandForUser } from "@/server/db/repositories";
@@ -15,7 +13,5 @@ export async function saveBrandLogo(brandId: string, userId: string, file: File)
   const bytes = Buffer.from(await file.arrayBuffer());
   const magic = ext === "png" ? bytes.subarray(0, 4).toString("hex") === "89504e47" : ext === "jpg" ? bytes.subarray(0, 2).toString("hex") === "ffd8" : bytes.subarray(0, 4).toString() === "RIFF";
   if (!magic) throw new Error("That file is not a valid image of the type it claims to be.");
-  const dir = join(process.cwd(), "data", "uploads", "logos"); await mkdir(dir, { recursive: true });
-  const path = join(dir, `${brandId}-${randomUUID()}.${ext}`); await writeFile(path, bytes);
-  db.prepare("INSERT INTO brand_assets (id, brand_id, kind, filename, storage_path, content_type, created_at) VALUES (?, ?, 'logo', ?, ?, ?, ?)").run(randomUUID(), brandId, file.name.replace(/[^\w.-]/g, "-").slice(0, 80), path, file.type, new Date().toISOString());
+  db.prepare("INSERT INTO brand_assets (id, brand_id, kind, filename, storage_path, content_type, created_at, data_base64) VALUES (?, ?, 'logo', ?, 'database', ?, ?, ?)").run(randomUUID(), brandId, file.name.replace(/[^\w.-]/g, "-").slice(0, 80), file.type, new Date().toISOString(), bytes.toString("base64"));
 }

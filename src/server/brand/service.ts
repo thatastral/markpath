@@ -6,7 +6,7 @@ import { initializeSchema } from "@/server/db/schema";
 import { addBrandSpecVersion, addGuideline, approveBrandSpecVersion, findBrandForUser } from "@/server/db/repositories";
 import { extractFixtureBrandSpec } from "./spec";
 
-const uploadDirectory = () => join(process.cwd(), "data", "uploads");
+const uploadDirectory = () => join(process.env.VERCEL ? "/tmp/markpath" : join(process.cwd(), "data"), "uploads"); // Vercel only allows writing to /tmp; the extracted spec itself lives in the database
 
 async function saveAndExtract(brandId: string, userId: string, originalName: string, contents: string, sourceType: string) {
   const db = getDatabase(); initializeSchema(db);

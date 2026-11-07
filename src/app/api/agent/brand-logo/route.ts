@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "Agent API is not configured or the token is invalid." }, { status: 401 });
   if (ctx.role !== "design" && ctx.role !== "qa") return NextResponse.json({ error: "Only the Design agent and Brand QA can fetch the reference logo." }, { status: 403 });
   const db = getDatabase(); initializeSchema(db);
-  const row = db.prepare("SELECT storage_path, content_type FROM brand_assets WHERE brand_id = ? AND kind = 'logo' ORDER BY created_at DESC LIMIT 1").get(ctx.brandId) as { storage_path: string; content_type: string } | undefined;
+  const row = db.prepare("SELECT storage_path, content_type, data_base64 FROM brand_assets WHERE brand_id = ? AND kind = 'logo' ORDER BY created_at DESC LIMIT 1").get(ctx.brandId) as { storage_path: string; content_type: string; data_base64: string | null } | undefined;
   if (!row) return NextResponse.json({ error: "No reference logo has been uploaded for this workspace." }, { status: 404 });
-  return new NextResponse(new Uint8Array(await readFile(row.storage_path)), { headers: { "Content-Type": row.content_type, "Cache-Control": "no-store" } });
+  return new NextResponse(new Uint8Array(row.data_base64 ? Buffer.from(row.data_base64, "base64") : await readFile(row.storage_path)), { headers: { "Content-Type": row.content_type, "Cache-Control": "no-store" } });
 }
