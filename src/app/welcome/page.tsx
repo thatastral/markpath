@@ -13,36 +13,22 @@ const steps = [
 
 export default function WelcomePage() {
   return <div className="min-h-dvh bg-surface text-ink">
-    <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+    <header className="sticky top-0 z-10 border-b border-transparent bg-surface/80 backdrop-blur supports-[backdrop-filter]:bg-surface/70"><div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
       <span className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight"><Logo />Markpath</span>
       <nav aria-label="Account" className="flex items-center gap-2"><Link className={buttonClass("ghost")} href="/login">Sign in</Link><Link className={buttonClass("primary")} href="/signup">Get started</Link></nav>
-    </header>
+    </div></header>
 
     <main>
-      <section className="mx-auto max-w-3xl px-4 pb-16 pt-16 text-center sm:px-6 sm:pt-24">
+      <section className="relative mx-auto max-w-3xl px-4 pb-12 pt-16 text-center sm:px-6 sm:pt-24"><div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 -z-0 mx-auto h-72 max-w-2xl rounded-full bg-[radial-gradient(closest-side,rgba(36,87,245,0.10),transparent)] blur-2xl" /><div className="relative">
         <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-canvas px-3 py-1 text-xs text-muted"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#2457F5]" />Four agents, one Switch room</p>
         <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight sm:text-6xl">Keep your brand consistent everywhere.</h1>
         <p className="mx-auto mt-5 max-w-xl text-pretty text-base text-muted sm:text-lg">Markpath finds outdated colours, fonts and corners in your code, Figma and Canva. You approve the exact change in chat. Agents fix it and prove it worked.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-2"><Link className={buttonClass("primary", "md", "px-4")} href="/signup">Get started free</Link><a className={buttonClass("secondary", "md", "px-4")} href="https://github.com/thatastral/markpath" rel="noreferrer" target="_blank">View on GitHub</a></div>
-      </section>
-
-      <section aria-label="What Markpath changes" className="mx-auto mt-10 max-w-2xl px-4 sm:px-6">
-        <svg className="h-auto w-full" role="img" viewBox="0 0 640 150" aria-labelledby="ill-title"><title id="ill-title">Old brand values become the new ones: colour, typeface and corner radius</title>
-          <g fontFamily="var(--font-sans)" fontSize="12">
-            {[0, 1, 2].map((i) => <g key={i} transform={`translate(${i * 215} 0)`}>
-              <rect x="1" y="1" width="208" height="148" rx="18" fill="var(--color-canvas)" stroke="var(--color-border)" />
-              <text x="20" y="30" fill="var(--color-muted)">{["Colour", "Typeface", "Corner radius"][i]}</text>
-              {i === 0 && <><rect x="20" y="52" width="40" height="40" rx="10" fill="#164B9B" opacity="0.45" /><path d="M76 72h28m-8-7l8 7-8 7" stroke="var(--color-muted)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /><rect x="120" y="52" width="40" height="40" rx="10" fill="#2457F5" /><text x="20" y="122" fill="var(--color-muted)" fontFamily="var(--font-mono)">#164B9B → #2457F5</text></>}
-              {i === 1 && <><text x="20" y="84" fontSize="26" fill="var(--color-faint)" fontFamily="Georgia, serif">Aa</text><path d="M76 76h28m-8-7l8 7-8 7" stroke="var(--color-muted)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /><text x="120" y="84" fontSize="26" fontWeight="600" fill="var(--color-ink)">Aa</text><text x="20" y="122" fill="var(--color-muted)" fontFamily="var(--font-mono)">Inter → Geist</text></>}
-              {i === 2 && <><rect x="20" y="58" width="46" height="28" rx="3" fill="none" stroke="var(--color-faint)" strokeWidth="1.6" /><path d="M76 72h28m-8-7l8 7-8 7" stroke="var(--color-muted)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /><rect x="120" y="58" width="46" height="28" rx="9" fill="none" stroke="var(--color-ink)" strokeWidth="1.6" /><text x="20" y="122" fill="var(--color-muted)" fontFamily="var(--font-mono)">4px → 8px</text></>}
-              <circle cx="186" cy="26" r="7" fill="var(--color-success-soft)" /><path d="M182.5 26l2.4 2.4 4.6-4.8" stroke="var(--color-success)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </g>)}
-          </g>
-        </svg>
-      </section>
+        <p className="mt-4 text-xs text-muted">Works with GitHub, Figma and Canva · Discord, Slack, Telegram and Teams</p>
+      </div></section>
 
       <section aria-label="A conversation in the room" className="mx-auto mt-4 max-w-2xl px-4 sm:px-6">
-        <div className="rounded-card border border-border bg-canvas p-4 text-left text-sm shadow-card sm:p-5">
+        <div className="overflow-hidden rounded-card border border-border bg-surface text-left text-sm shadow-pop"><div className="flex items-center gap-2 border-b border-border bg-canvas px-4 py-2.5 text-xs text-muted"><span aria-hidden className="flex gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-border-strong" /><span className="h-2.5 w-2.5 rounded-full bg-border-strong" /><span className="h-2.5 w-2.5 rounded-full bg-border-strong" /></span><span className="ml-1 font-medium text-ink"># brand-ops</span><span>· Switch room</span></div><div className="p-4 sm:p-5">
           {[
             ["You", "@mp-director fix the issues"],
             ["Brand Director", "Found 16 old values in Figma and 2 in Canva, and a colour in code. Approve? Reply approve or reject."],
@@ -52,13 +38,13 @@ export default function WelcomePage() {
             <span aria-hidden className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-2xs font-semibold ${who === "You" ? "bg-ink text-surface" : "bg-brand-soft text-brand"}`}>{who[0]}</span>
             <p className="min-w-0"><span className="font-medium">{who}</span><span className="ml-2 text-muted">{text}</span></p>
           </div>)}
-        </div>
+        </div></div>
       </section>
 
       <section aria-labelledby="how" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
         <h2 className="text-center text-2xl font-semibold tracking-tight" id="how">How it works</h2>
         <ol className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s) => <li className="rounded-card border border-border p-5" key={s.n}><span className="text-xs font-medium tabular-nums text-brand">{s.n}</span><h3 className="mt-2 font-semibold">{s.title}</h3><p className="mt-1 text-sm text-muted">{s.body}</p></li>)}
+          {steps.map((s) => <li className="rounded-card border border-border bg-surface p-5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong" key={s.n}><span className="text-xs font-medium tabular-nums text-brand">{s.n}</span><h3 className="mt-2 font-semibold">{s.title}</h3><p className="mt-1 text-sm text-muted">{s.body}</p></li>)}
         </ol>
         <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-muted">Nothing changes without your approval. Each approval covers one exact change and works once. Pull requests are never merged for you, and judgement calls like contrast, tone of voice and logo use are flagged for a person.</p>
       </section>
