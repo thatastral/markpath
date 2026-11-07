@@ -19,6 +19,13 @@ Judgement calls (text contrast, tone of voice, logo use, leftover template text)
 
 The agents live in a Switch room and work only when someone mentions them. Switch carries the hand-offs (Director → Design → Implementation → QA), the plain-language conversation, and the approvals by reply. Markpath is the system of record: brand rules, issues, approvals, evidence and activity. Without the room there is no coordination, no approval in chat and no independent QA hand-off.
 
+## How Switch is set up
+
+- **Agents:** four Claude Code agents (`mp-director`, `mp-design`, `mp-implementation`, `mp-qa`), created from the room template in [`switch/markpath-ops.template.yaml`](switch/markpath-ops.template.yaml). Markpath's Integrations page fills in each agent's key and the site address, so you copy one template.
+- **Channel:** a Telegram group with the Switch bot as admin (Group Privacy off). In Switch Console: connect Telegram, create the room from the template, attach it to the group, link your account. Each agent's addressing is "Anyone", so teammates can ask; only the workspace owner can approve.
+- **How the work flows:** the agents only act when mentioned. They fetch their instructions from Markpath (`/api/agent/playbook`) on every message, call Markpath's API to audit, request approval, apply and verify, and hand off to each other with mentions.
+- **Run it:** step-by-step in [docs/setup.md](docs/setup.md) and [docs/setup-telegram.md](docs/setup-telegram.md).
+
 ## What's in the app
 
 | Area | What it does |
@@ -40,7 +47,7 @@ Light and dark themes (System / Light / Dark), keyboard support, and phone layou
 | GitHub | Real: device-flow sign-in, branch and pull request, re-read through the API. Never merges or touches the default branch. |
 | Figma | Real edits through the Figma connector (needs a Full seat), re-read by QA. |
 | Canva | Real edits through the Canva connector: colours and wording, not fonts. Runs as the Canva account connected to the agents. |
-| Switch | Real room with four Claude agents. Tested end to end in the bundled Mattermost; Telegram connected by hand. Slack, Discord and Teams follow Switch's guides and were not run end to end. |
+| Switch | Real room with four Claude agents. Tested end to end in Telegram with teammates and in the bundled Mattermost. Discord, Slack and Teams follow Switch's guides and were not run end to end. |
 | Password reset email | Built; sending needs a verified domain in Resend, so it is off on the live site. |
 
 ## Run locally
