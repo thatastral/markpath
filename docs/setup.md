@@ -1,18 +1,33 @@
-# Local setup
+# Setup
 
-## Application
+## 1. Run Markpath
+Hosted: https://markpath.vercel.app. Sign up, create a workspace and follow the setup steps.
 
-1. Install Node.js 20 or later.
-2. Copy `.env.example` to `.env.local` and replace `MARKPATH_SESSION_SECRET` for non-local work.
-3. Run `npm install`.
-4. Run `npm run db:seed`.
-5. Run `npm run dev`, then open `http://localhost:3000`.
-6. Sign in with `demo@markpath.local` / `markpath-demo`.
+Local (Node 24):
+```bash
+cp .env.example .env.local
+npm install
+npm run demo:reset   # demo workspace "Nexa" with sample issues
+npm run dev          # http://localhost:3000, demo@markpath.local / markpath-demo
+```
+Checks before you ship: `npm run typecheck && npm test && npm run build`.
 
-Run `npm test`, `npm run typecheck`, and `npm run build` before handoff. `npm run demo:reset` resets the database, uploads, and local fixture workspace, then stages Nexa findings and approval decisions. After approving both proposed operations in the dashboard, `npm run demo:complete` runs the local fixture executor and independent QA.
+## 2. Brand rules
+Onboarding step 1 reads a PDF, Markdown or text guideline, a website, or a Figma or Canva link, and pre-fills the primary colour, typeface, button radius and tone of voice. Add the **old values to replace**: they are what the agents look for. Save to create version 1.0. Later, Brand rules → Edit rules creates a new version.
 
-## Switch Rooms
+## 3. Connect your tools
+- **GitHub:** Connect GitHub, enter the code on github.com, choose a repository (or create a sample one).
+- **Figma / Canva:** paste the file links. On the computer that runs your agents, connect Figma and Canva once in Claude (claude.ai/settings/connectors). Figma edits need a Full seat.
 
-Docker Desktop and Switch Console must be installed first. In Switch Console, add a local server and confirm it is started, sign into the bundled Mattermost app, then replace any previously saved Markpath template YAML with the full contents of `switch/markpath-ops.template.yaml`. Existing Console template cards retain old YAML, so clicking an old card will not pick up a repository edit. The first local server start downloads several gigabytes. Set `SWITCH_BASE_URL` and a server-side `MARKPATH_AGENT_TOKEN`; use it only from agents calling `/api/agent/*`.
+## 4. Chat room (Switch)
+1. Install **Switch Console** (the desktop app that runs the agents), start a local server.
+2. In Markpath, name your agents (for example `mp` gives `@mp-director`), then **Copy room template**.
+3. In Switch Console, create a room from that template and choose your chat app: the bundled Mattermost needs nothing else. For Discord, Slack, Telegram or Teams, connect the app first (guides in `docs/setup-*.md`).
+4. Send `@mp-director what's the status?`. The setup step turns green when an agent answers.
+5. Set **Your chat username** so `approve` replies from you are recognised.
 
-The current app must not be represented as Switch-connected until it passes `/health` **and** receives a verified agent reply from the configured room. Agents should act only on Switch WebSocket events whose `payload.addressed` is true, reply to the 2-second pings within the 6-second deadline, and record room message references in Markpath activity records.
+## 5. Use it
+- `@mp-director fix the issues` → approval request → reply `@mp-director approve` → fixes in Figma, Canva and a GitHub pull request → QA → issues close.
+- `@mp-director is this on brand? <link>` → read-only review on the Reviews page.
+
+Agents run on the machine with Switch Console and stop when it sleeps. For a team, see `docs/agents-on-a-server.md`.

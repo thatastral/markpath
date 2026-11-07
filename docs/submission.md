@@ -3,7 +3,9 @@
 ## Checklist
 - [ ] Repo made public (it is private until the owner says so): https://github.com/thatastral/markpath
 - [ ] Rotate agent keys and check no secret is committed (`git log -p | grep -i "mp_"`, `.env*` ignored)
-- [ ] README top section: what it is, 3-minute demo, how Switch is central
+- [x] README top section: what it is, 3-minute demo, how Switch is central
+- [x] Live site: https://markpath.vercel.app
+- [x] docs/: overview, architecture, setup, decisions, demo-script, submission, retrospective, e2e-audit
 - [ ] Demo video recorded from `docs/demo-script.md`, uploaded, link added to README
 - [ ] Blog post published (Best Blog prize): `docs/blog-post.md`
 - [ ] #HowISwitch post published: `docs/social-post.md`
