@@ -33,7 +33,7 @@ const field = "grid gap-1 text-sm";
 const row = "flex flex-wrap gap-2";
 const CONNECTORS = "https://claude.ai/settings/connectors";
 
-export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<{ saved?: string; problem?: string; show?: string }> }) {
+export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<{ saved?: string; problem?: string; show?: string; open?: string }> }) {
   const notice = await searchParams;
   const userId = await currentUserId(); if (!userId) redirect("/login");
   const db = getDatabase(); initializeSchema(db);
@@ -131,7 +131,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         </div>
         <h3 className="mt-3 text-sm font-semibold">{step.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{step.why}</p>
-        <div className="mt-auto pt-4"><Link className={buttonClass(step.key === nextKey ? "primary" : "secondary", "sm", "w-full")} href={`#step-${step.n}`}>{cardLabel(step)}<span className="sr-only"> {step.title}</span></Link></div>
+        <div className="mt-auto pt-4"><Link className={buttonClass(step.key === nextKey ? "primary" : "secondary", "sm", "w-full")} href={step.status === "done" ? `?open=done#step-${step.n}` : `#step-${step.n}`}>{cardLabel(step)}<span className="sr-only"> {step.title}</span></Link></div>
       </li>; })}</ul>
       {shown.length === 0 && <p className={`mt-4 ${cardClass} px-4 py-6 text-center text-sm text-muted`}>{notice.show === "connected" ? "Nothing is connected yet. Start with the first step below." : "Everything is set up. Nice work."}</p>}
     </section>
@@ -148,7 +148,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       <ol className="border-t border-border">
         {setup.steps.filter((step) => step.status !== "done").map((step) => <SetupStepCard key={step.key} note={notes[step.key]} step={step}>{actions[step.key]}</SetupStepCard>)}
       </ol>
-      {setup.steps.some((step) => step.status === "done") && <details className="group border-t border-border">
+      {setup.steps.some((step) => step.status === "done") && <details className="group border-t border-border" open={notice.open === "done"}>
         <summary className="flex min-h-10 cursor-pointer items-center px-4 text-sm text-muted hover:text-ink sm:px-5">Done ({setup.steps.filter((step) => step.status === "done").length}): show or change</summary>
         <ol className="border-t border-border">{setup.steps.filter((step) => step.status === "done").map((step) => <SetupStepCard key={step.key} note={notes[step.key]} step={step}>{actions[step.key]}</SetupStepCard>)}</ol>
       </details>}
