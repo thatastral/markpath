@@ -80,9 +80,9 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     <div aria-hidden className="fixed inset-0 bg-[rgb(15_15_20/0.18)] backdrop-blur-[2px] dark:bg-black/50" />
     <main className="relative mx-auto grid min-h-dvh w-full max-w-4xl place-items-center px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="onboarding-title" aria-describedby="onboarding-why" className="anim-rise grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card border border-border bg-surface shadow-pop md:grid-cols-[14rem_minmax(0,1fr)]">
-        <nav aria-label="Setup steps" className="min-w-0 border-b border-border bg-canvas p-4 md:border-b-0 md:border-r">
+        <nav aria-label="Setup steps" className="min-w-0 border-b border-border bg-canvas p-4 md:w-56 md:border-b-0 md:border-r">
           <div className="mb-3 grid gap-1.5">
-            <p className="flex items-center justify-between gap-2 text-2xs font-medium text-muted"><span>Setup</span><span className="tabular-nums">{requiredDone} of {requiredTotal} required steps done</span></p>
+            <p className="flex items-center justify-between gap-2 text-2xs font-medium text-muted"><span>Setup</span><span className="tabular-nums">{requiredDone}/{requiredTotal}</span></p>
             <Progress label="Required setup steps done" max={requiredTotal} value={requiredDone} />
           </div>
           <ol className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 md:mx-0 md:flex-col md:overflow-visible md:px-0">

@@ -39,8 +39,7 @@ export async function AuthFrame({ title, description, children, footer }: { titl
       </section>
 
       <aside className="order-first relative hidden overflow-hidden border-r border-border bg-[#0d0e10] text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
-        <div aria-hidden className="mp-dots absolute inset-0 text-white opacity-[0.1] [mask-image:radial-gradient(120%_90%_at_0%_0%,black,transparent_75%)]" />
-        <div className="relative">
+                <div className="relative">
           <p className="text-2xs font-medium uppercase tracking-[0.18em] text-white/40">The brand room</p>
           <h2 className="mt-5 max-w-[19rem] text-balance text-[30px] font-semibold leading-[1.12] tracking-tight">Your brand, everywhere it ships.</h2>
           <p className="mt-4 max-w-[20rem] text-sm leading-6 text-white/55">Markpath reads your guidelines once, then checks GitHub, Figma and Canva for drift. Agents fix what is off and open the pull request.</p>
@@ -49,20 +48,9 @@ export async function AuthFrame({ title, description, children, footer }: { titl
           </ul>
         </div>
 
-        <div className="relative mt-10">
-          <div className="rounded-card border border-white/10 bg-white/[0.04] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-white/45">This week</p>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-2 py-0.5 text-2xs font-medium text-white/60"><span aria-hidden className="h-1 w-1 rounded-full bg-success" />Live</span>
-            </div>
-            <div className="mt-3 flex items-end justify-between gap-4">
-              <div><p className="text-2xl font-semibold tracking-tight">18</p><p className="mt-0.5 text-xs text-white/45">off-brand values fixed</p></div>
-              <div className="flex -space-x-2">
-                {(["director", "design", "implementation", "qa"] as const).map((kind) => <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]" key={kind}><Mascot size={22} kind={kind} /></span>)}
-              </div>
-            </div>
-          </div>
-          <p className="mt-5 text-2xs text-white/30">One room for the brand, the agents and the work.</p>
+        <div className="relative mt-10 flex items-center gap-3">
+          <span className="flex -space-x-2">{(["director", "design", "implementation", "qa"] as const).map((kind) => <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0d0e10] ring-2 ring-[#0d0e10]" key={kind}><Mascot kind={kind} size={30} /></span>)}</span>
+          <p className="text-xs text-white/45">Four agents, one Switch room.</p>
         </div>
       </aside>
     </div>
