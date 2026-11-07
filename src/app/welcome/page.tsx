@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/main-nav";
 import { buttonClass } from "@/components/ui/primitives";
-import type { MascotKind } from "@/components/mascot";
+import { Mascot, type MascotKind } from "@/components/mascot";
 import { ChatWindow, LandingEffects } from "@/components/landing/effects";
 import { LandingBackdrop } from "@/components/landing/backdrop";
 import { MascotCloud } from "@/components/landing/mascot-cloud";
@@ -86,7 +86,6 @@ export default function WelcomePage() {
 
       <section aria-labelledby="switch-heading" className="mx-auto max-w-5xl px-4 pb-24 sm:px-6" id="switch">
         <div className="relative" data-reveal>
-          <MascotCloud variant="panel" />
           <div className="grid overflow-hidden rounded-card border border-border bg-surface md:grid-cols-2">
             <div className="p-7 sm:p-10">
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted">Built on Switch</p>
@@ -99,7 +98,7 @@ export default function WelcomePage() {
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted">The hand-off</p>
               <ol className="mt-4 grid gap-2">
                 {agents.map(([kind, name, job], i) => <li className="relative flex items-center gap-3 rounded-panel border border-border bg-surface px-3.5 py-3" key={name}>
-                  <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-strong text-2xs font-semibold tabular-nums text-muted">{String(i + 1).padStart(2, "0")}</span>
+                  <span aria-hidden className="mp-mascot-item inline-flex h-10 w-10 shrink-0 items-center justify-center" style={{ "--mascot-bob": `${3 + i * 0.4}s`, "--mascot-delay": `${i * 0.5}s`, "--mascot-blink": `${1 + i}s` } as React.CSSProperties}><span className="mp-mascot-bob"><Mascot blink kind={kind} size={36} /></span></span>
                   <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{name}</span><span className="block text-xs text-muted">{job}</span></span>
                   <span aria-hidden className="text-faint">{i < agents.length - 1 ? "↓" : "✓"}</span>
                   <span className="sr-only">{kind === "qa" ? "Last step: verification" : "Hands off to the next agent"}</span>

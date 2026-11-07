@@ -230,8 +230,9 @@ details[open] > summary .chev { transform: rotate(90deg); }
 /* Landing mascots: a slow idle bob, blinking eyes, and a pause-and-tilt on hover. */
 @keyframes mp-mascot-bob {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
+  50% { transform: translateY(var(--mascot-hop, -7px)); }
 }
+.mp-mascot-roam .mp-mascot-bob { --mascot-hop: -16px; } /* inside the call-to-action they bounce, not just float */
 @keyframes mp-mascot-blink {
   0%, 91%, 100% { transform: scaleY(1); }
   93%, 95% { transform: scaleY(0.12); }

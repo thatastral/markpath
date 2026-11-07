@@ -11,10 +11,10 @@ const panelRoster: Item[] = [
 ];
 
 const ctaRoster: Item[] = [
-  { kind: "director", name: "Brand Director", pos: "md:left-4 md:top-5", size: "h-14 w-14 md:h-[104px] md:w-[104px] xl:h-[124px] xl:w-[124px]", tilt: "-rotate-[7deg]", bob: "6.4s", roam: ["24px", "14px", "30s"] },
-  { kind: "design", name: "Design agent", pos: "md:right-6 md:top-2", size: "h-14 w-14 md:h-[112px] md:w-[112px] xl:h-[132px] xl:w-[132px]", tilt: "rotate-[8deg]", bob: "7.6s", roam: ["18px", "16px", "34s"] },
-  { kind: "implementation", name: "Implementation agent", pos: "md:left-14 md:bottom-2", size: "h-[52px] w-[52px] md:h-[88px] md:w-[88px] xl:h-[104px] xl:w-[104px]", tilt: "-rotate-[4deg]", bob: "8.2s", roam: ["28px", "12px", "27s"] },
-  { kind: "qa", name: "Brand QA", pos: "md:right-4 md:bottom-4", size: "h-14 w-14 md:h-[96px] md:w-[96px] xl:h-[116px] xl:w-[116px]", tilt: "rotate-[10deg]", bob: "6.9s", roam: ["16px", "18px", "32s"] },
+  { kind: "director", name: "Brand Director", pos: "md:left-4 md:top-5", size: "h-14 w-14 md:h-[104px] md:w-[104px] xl:h-[124px] xl:w-[124px]", tilt: "-rotate-[7deg]", bob: "2.4s", roam: ["150px", "70px", "16s"] },
+  { kind: "design", name: "Design agent", pos: "md:right-6 md:top-2", size: "h-14 w-14 md:h-[112px] md:w-[112px] xl:h-[132px] xl:w-[132px]", tilt: "rotate-[8deg]", bob: "2.8s", roam: ["-140px", "80px", "19s"] },
+  { kind: "implementation", name: "Implementation agent", pos: "md:left-14 md:bottom-2", size: "h-[52px] w-[52px] md:h-[88px] md:w-[88px] xl:h-[104px] xl:w-[104px]", tilt: "-rotate-[4deg]", bob: "2.6s", roam: ["130px", "-55px", "21s"] },
+  { kind: "qa", name: "Brand QA", pos: "md:right-4 md:bottom-4", size: "h-14 w-14 md:h-[96px] md:w-[96px] xl:h-[116px] xl:w-[116px]", tilt: "rotate-[10deg]", bob: "3s", roam: ["-120px", "-60px", "17s"] },
 ];
 
 /** The four agents as large, uneven mascots. "panel" floats them around a card; "cta" keeps them inside a dark panel and lets them roam slowly. */
