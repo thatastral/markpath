@@ -23,7 +23,7 @@ const menuRow = "flex min-h-10 w-full items-center gap-2 rounded-control px-2 te
 
 export default async function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const userId = await currentUserId();
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/welcome"); // signed-out visitors see the landing page
   const db = getDatabase(); initializeSchema(db);
   const user = findUserById(db, userId);
   if (!user) redirect("/login"); // a stale cookie for a user that no longer exists
