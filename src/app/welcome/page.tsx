@@ -19,7 +19,7 @@ export default function WelcomePage() {
     </div></header>
 
     <main>
-      <section className="relative mx-auto max-w-3xl px-4 pb-12 pt-16 text-center sm:px-6 sm:pt-24"><div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 -z-0 mx-auto h-72 max-w-2xl rounded-full bg-[radial-gradient(closest-side,rgba(36,87,245,0.10),transparent)] blur-2xl" /><div className="relative">
+      <section className="relative mx-auto max-w-3xl px-4 pb-12 pt-16 text-center sm:px-6 sm:pt-24"><div className="relative">
         <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-canvas px-3 py-1 text-xs text-muted"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#2457F5]" />Four agents, one Switch room</p>
         <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight sm:text-6xl">Keep your brand consistent everywhere.</h1>
         <p className="mx-auto mt-5 max-w-xl text-pretty text-base text-muted sm:text-lg">Markpath finds outdated colours, fonts and corners in your code, Figma and Canva. You approve the exact change in chat. Agents fix it and prove it worked.</p>
@@ -41,25 +41,42 @@ export default function WelcomePage() {
         </div></div>
       </section>
 
-      <section aria-labelledby="how" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
-        <h2 className="text-center text-2xl font-semibold tracking-tight" id="how">How it works</h2>
-        <ol className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s) => <li className="rounded-card border border-border bg-surface p-5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong" key={s.n}><span className="text-xs font-medium tabular-nums text-brand">{s.n}</span><h3 className="mt-2 font-semibold">{s.title}</h3><p className="mt-1 text-sm text-muted">{s.body}</p></li>)}
+      <section aria-labelledby="how" className="mx-auto max-w-5xl px-4 pb-20 pt-24 sm:px-6">
+        <p className="text-center text-xs font-medium uppercase tracking-[0.14em] text-muted">How it works</p>
+        <h2 className="mx-auto mt-3 max-w-xl text-balance text-center text-3xl font-semibold tracking-tight" id="how">From “that’s off-brand” to fixed, in one conversation.</h2>
+        <ol className="relative mt-12 grid gap-4 md:grid-cols-4">
+          <span aria-hidden className="absolute left-0 right-0 top-5 hidden h-px bg-border md:block" />
+          {steps.map((s) => <li className="relative" key={s.n}>
+            <span className="relative z-[1] inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-sm font-semibold tabular-nums shadow-card">{s.n}</span>
+            <h3 className="mt-4 font-semibold">{s.title}</h3>
+            <p className="mt-1.5 text-sm leading-6 text-muted">{s.body}</p>
+          </li>)}
         </ol>
-        <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-muted">Nothing changes without your approval. Each approval covers one exact change and works once. Pull requests are never merged for you, and judgement calls like contrast, tone of voice and logo use are flagged for a person.</p>
       </section>
 
-      <section aria-labelledby="switch" className="border-y border-border bg-canvas">
-        <div className="mx-auto grid max-w-5xl gap-6 px-4 py-14 sm:grid-cols-2 sm:px-6">
-          <div><h2 className="text-2xl font-semibold tracking-tight" id="switch">Built on Switch</h2><p className="mt-3 text-sm text-muted">The agents live in a Switch room and act only when mentioned. Switch carries the hand-offs between Director, Design, Implementation and QA, and your approvals in chat. Use it in Discord, Slack, Telegram or Teams.</p></div>
-          <ul className="grid gap-2 text-sm">{["Real Figma and Canva edits through their official connectors", "Real GitHub pull requests, never merged, main branch untouched", "Paste any link and ask “is this on brand?”", "New pull requests checked automatically"].map((t) => <li className="flex gap-2" key={t}><span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />{t}</li>)}</ul>
+      <section aria-labelledby="switch" className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+        <div className="grid overflow-hidden rounded-card border border-border md:grid-cols-2">
+          <div className="p-8 sm:p-10">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Built on Switch</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight" id="switch">A team of agents in the chat you already use.</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">Each agent has one job and acts only when mentioned. Switch carries the hand-offs between them and your approvals in chat. Without the room, there’s no team.</p>
+            <ul className="mt-6 grid gap-2.5 text-sm">{["Real Figma and Canva edits through official connectors", "Real GitHub pull requests, never merged for you", "Paste any link and ask “is this on brand?”", "New pull requests checked automatically"].map((t) => <li className="flex gap-2.5" key={t}><span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />{t}</li>)}</ul>
+          </div>
+          <div className="grid content-center gap-2.5 border-t border-border bg-canvas p-8 sm:p-10 md:border-l md:border-t-0">
+            {[["Brand Director", "Plans the work and asks you to approve"], ["Design agent", "Fixes Figma and Canva"], ["Implementation agent", "Opens the GitHub pull request"], ["Brand QA", "Checks every fix on its own"]].map(([name, job]) => <div className="flex items-center gap-3 rounded-panel border border-border bg-surface px-4 py-3" key={name}>
+              <span aria-hidden className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-surface">{name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
+              <span className="min-w-0"><span className="block text-sm font-medium">{name}</span><span className="block text-xs text-muted">{job}</span></span>
+            </div>)}
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Set up in minutes</h2>
-        <p className="mt-2 text-sm text-muted">Upload your guideline or paste your website, connect GitHub, Figma and Canva, then bring the agents into your chat.</p>
-        <Link className={buttonClass("primary", "md", "mt-6 px-4")} href="/signup">Get started free</Link>
+      <section className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+        <div className="rounded-card bg-ink px-8 py-14 text-center text-surface sm:px-12">
+          <h2 className="text-balance text-3xl font-semibold tracking-tight">Set up in minutes.</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 opacity-70">Upload your guideline or paste your website. Connect GitHub, Figma and Canva. Bring the agents into your chat.</p>
+          <Link className="mt-7 inline-flex min-h-10 items-center rounded-full bg-surface px-5 text-sm font-medium text-ink transition-opacity hover:opacity-90" href="/signup">Get started free</Link>
+        </div>
       </section>
     </main>
 

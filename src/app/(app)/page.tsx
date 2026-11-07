@@ -51,11 +51,16 @@ export default async function OverviewPage() {
   const waiting = getApprovals(db, brand.id).filter((a) => a.decision === "pending");
   const byTask = new Map<string, typeof waiting>(); for (const a of waiting) byTask.set(a.task_id, [...(byTask.get(a.task_id) ?? []), a]);
   return <main className="anim-rise">
-    <PageHeader actions={<Link className={buttonClass("secondary")} href="/brand"><span aria-hidden className={`h-1.5 w-1.5 rounded-full ${hasRules ? "bg-success" : "bg-warning"}`} />{hasRules ? `Brand rules v${brand.brand_version}` : "Add brand rules"}</Link>} description={brand.description || "Your brand workspace at a glance."} title="Overview" />
+    <PageHeader actions={<Link className={buttonClass(hasRules ? "secondary" : "primary")} href={hasRules ? "/brand" : "/onboarding?step=brand&new=1"}><span aria-hidden className={`h-1.5 w-1.5 rounded-full ${hasRules ? "bg-success" : "bg-warning"}`} />{hasRules ? `Brand rules v${brand.brand_version}` : "Add brand rules"}</Link>} description={brand.description || "Your brand workspace at a glance."} title="Overview" />
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
     <h2 className="text-2xl font-semibold tracking-tight">{greeting}{first && first.toLowerCase() !== "demo" ? `, ${first}` : ""}.</h2>
     <p className="mt-1 text-sm text-muted">Here's what's happening in {brand.name}.</p>
-    <nav aria-label="At a glance" className="mt-2 flex flex-wrap gap-x-1 text-sm text-muted">{metrics.map(([label, value, href, cta], idx) => <span className="inline-flex items-center" key={label}>{idx > 0 && <span aria-hidden className="mx-1.5 text-faint">·</span>}<Link aria-label={`${label}: ${value}. ${cta}`} className="inline-flex min-h-10 items-center gap-1 rounded-control hover:text-ink lg:min-h-6" href={href}><span className="font-medium tabular-nums text-ink">{value}</span> {label}</Link></span>)}</nav>
+    <nav aria-label="At a glance" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">{[
+      ["Open issues", overview.issueCount, overview.findingCount ? `in ${overview.findingCount} ${overview.findingCount === 1 ? "place" : "places"}` : "nothing to fix", "/issues"],
+      ["High priority", overview.criticalOrHighCount, "fix these first", "/issues?severity=high"],
+      ["Waiting for you", overview.pendingApprovalCount, overview.pendingApprovalCount ? "approve or reject" : "nothing to approve", "/issues"],
+      ["Fixes verified", overview.completedTaskCount, awaitingQa ? `${awaitingQa} waiting for QA` : "checked by Brand QA", "/activity"],
+    ].map(([label, value, sub, href]) => <Link className="rounded-card border border-border bg-surface p-4 transition-colors hover:border-border-strong" href={href as string} key={label as string}><span className="block text-xs text-muted">{label}</span><span className="mt-1 block text-2xl font-semibold tabular-nums tracking-tight">{value}</span><span className="mt-0.5 block text-xs text-muted">{sub}</span></Link>)}</nav>
     {awaitingQa > 0 && <p className="mt-1 text-sm text-muted">Ask @{setup.context.teamPrefix}-qa to check, or wait for the Director to ask.</p>}
 
     <section aria-labelledby="decide-heading" className="mt-10">

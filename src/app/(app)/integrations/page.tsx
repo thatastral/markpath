@@ -143,11 +143,15 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
           <p className="text-sm text-muted"><span className="tabular-nums">{required - setup.requiredLeft} of {required}</span> steps done{optionalCount > 0 && <>, plus <span className="tabular-nums">{optionalCount}</span> optional</>}</p>
         </div>
         <div className="mt-3"><Progress label="Setup progress" max={required} value={required - setup.requiredLeft} /></div>
-        <p className="mt-3 text-xs text-muted">Finished something in another app? Select Check again to update these.</p>
+        
       </div>
       <ol className="border-t border-border">
-        {setup.steps.map((step) => <SetupStepCard key={step.key} note={notes[step.key]} step={step}>{actions[step.key]}</SetupStepCard>)}
+        {setup.steps.filter((step) => step.status !== "done").map((step) => <SetupStepCard key={step.key} note={notes[step.key]} step={step}>{actions[step.key]}</SetupStepCard>)}
       </ol>
+      {setup.steps.some((step) => step.status === "done") && <details className="group border-t border-border">
+        <summary className="flex min-h-10 cursor-pointer items-center px-4 text-sm text-muted hover:text-ink sm:px-5">Done ({setup.steps.filter((step) => step.status === "done").length}): show or change</summary>
+        <ol className="border-t border-border">{setup.steps.filter((step) => step.status === "done").map((step) => <SetupStepCard key={step.key} note={notes[step.key]} step={step}>{actions[step.key]}</SetupStepCard>)}</ol>
+      </details>}
     </section>
 
     <details className={`mt-8 overflow-hidden ${cardClass}`}>
@@ -166,7 +170,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
           </> : <p className="mt-2 text-muted">Connect GitHub and choose a repository in step 2 first.</p>}
         </section>
         <section aria-labelledby="figma-more" className="px-4 py-5 sm:px-5">
-          <h3 className="text-sm font-semibold" id="figma-more">Figma plugin</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold" id="figma-more">Figma plugin <Badge tone="neutral">Coming soon</Badge></h3>
           <p className="mt-1 text-muted">Another way to connect Figma, without Claude. Not yet tested in Figma, so treat its edits as untested.</p>
           <FigmaPluginCard />
         </section>
