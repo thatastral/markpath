@@ -63,7 +63,7 @@ export function requestPluginApproval(brandId: string, input: unknown) {
   } else addTaskResource(task.id, resource.id);
   const approvalId = requestApproval(task.id, owner?.user_id ?? "", { resourceId: resource.id, operation, payload: { provider: body.provider, fileName: body.fileName, changes: body.changes } }, actor);
   if (task.status === "PLAN_READY") transitionTask(task.id, "AWAITING_APPROVAL", actor);
-  return { approvalId, status: "pending", where: "Ask the workspace owner to approve this in the Markpath dashboard under Issues & approvals." };
+  return { approvalId, taskId: task.id, status: "pending", where: "Ask the workspace owner to approve this in the Markpath dashboard under Issues & approvals." };
 }
 
 export function approvedPluginOperations(brandId: string) {
@@ -80,6 +80,11 @@ export function recordPluginExecution(brandId: string, input: unknown) {
   const evidence = { label: viaMcp ? `applied by the Design agent through the ${provider === "canva" ? "Canva" : "Figma"} MCP and reported to Markpath; verified separately by Brand QA` : "reported by the Figma plugin; not independently verified by Markpath QA", approvalId: body.approvalId, before: body.before, after: body.after, reinspected: body.reinspected, remainingOutdated: body.remainingOutdated };
   db().prepare(`INSERT INTO execution_records (id, task_id, resource_id, operation, result, evidence, mode, executed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(randomUUID(), row.task_id, row.resource_id, operation, body.remainingOutdated === 0 ? "applied_reported" : "applied_partial_reported", JSON.stringify(evidence), provider === "canva" ? "canva_mcp" : viaMcp ? "figma_mcp" : "figma_plugin", new Date().toISOString());
   consumeApproval(body.approvalId);
+  // A task with only design resources has no GitHub step to move it forward, so executing the approved design edit does.
+  const taskNow = db().prepare("SELECT status FROM tasks WHERE id = ?").get(row.task_id) as { status: string };
+  const stillPending = (db().prepare("SELECT COUNT(*) AS n FROM approvals WHERE task_id = ? AND decision = 'pending'").get(row.task_id) as { n: number }).n;
+  if (taskNow.status === "AWAITING_APPROVAL" && stillPending === 0) { transitionTask(row.task_id, "APPROVED", "Brand Director"); transitionTask(row.task_id, "IMPLEMENTING", actor); }
+  else if (taskNow.status === "APPROVED") transitionTask(row.task_id, "IMPLEMENTING", actor);
   const t = db().prepare("SELECT brand_id FROM tasks WHERE id = ?").get(row.task_id) as { brand_id: string };
   recordActivity({ brandId: t.brand_id, taskId: row.task_id, agentName: actor, activityType: "plugin_execution", status: body.remainingOutdated === 0 ? `applied, re-inspected in ${provider === "canva" ? "Canva" : "Figma"}` : `partially applied, ${body.remainingOutdated} outdated remain` });
   return { recorded: true, evidence };

@@ -6,7 +6,7 @@ import { closeDatabase, getDatabase } from "../src/server/db/client";
 import { seedDatabase } from "../src/server/db/seed";
 import { approveSpec, ingestFixtureGuideline } from "../src/server/brand/service";
 import { decideTaskApprovals } from "../src/server/dashboard/service";
-import { AgentApiError, executeTarget, figmaScript, figmaVerification, readyForApproval, runAudit, verifyTask } from "../src/server/agents/operations";
+import { AgentApiError, executeTarget, figmaScript, figmaVerification, pendingTasks, readyForApproval, runAudit, verifyTask } from "../src/server/agents/operations";
 import { recordPluginExecution, recordPluginFindings, requestPluginApproval, approvedPluginOperations } from "../src/server/plugin/operations";
 import { parseFigmaFileKey, saveFigmaFile } from "../src/server/integrations/figma";
 import { parseCanvaDesignId, saveCanvaDesign } from "../src/server/integrations/canva";
@@ -80,4 +80,22 @@ describe("Figma through the MCP", () => {
     figmaVerification(as("qa"), { taskId: audit.taskId, provider: "canva", counts: { colour: 0, humanReview: 1 } });
     expect((await verifyTask(as("qa"), { taskId: audit.taskId })).status).toBe("COMPLETED");
   }, 40_000);
+
+  it("fixes a design-only task end to end (no GitHub step), and tells the Director what is pending", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "markpath-design-only-")); dirs.push(dir); process.env.MARKPATH_DB_PATH = join(dir, "db.sqlite");
+    const { user, brand } = await seedDatabase(process.env.MARKPATH_DB_PATH); const db = getDatabase(process.env.MARKPATH_DB_PATH);
+    const version = await ingestFixtureGuideline(brand.id, user.id); approveSpec(brand.id, user.id, version.id);
+    const as = (role: "director" | "design" | "implementation" | "qa") => ({ role, brandId: brand.id });
+    expect(pendingTasks(as("director")).pending).toEqual([]);
+    const req = requestPluginApproval(brand.id, { fileName: "Document", changes: [{ property: "colour", from: "#164B9B", to: "#2457F5", count: 6 }] });
+    expect(req.taskId).toBeTruthy();
+    expect(pendingTasks(as("director")).pending).toMatchObject([{ taskId: req.taskId, pending: 1 }]);
+    expect(await status(verifyTask(as("qa"), { taskId: req.taskId }))).toBe(409); // not executed yet
+    decideTaskApprovals(db, { taskId: req.taskId, userId: user.id, decision: "approved" });
+    expect(pendingTasks(as("director")).pending).toEqual([]);
+    recordPluginExecution(brand.id, { approvalId: req.approvalId, before: { colour: 6 }, after: { colour: 0 }, reinspected: true, remainingOutdated: 0, via: "mcp" });
+    expect((db.prepare("SELECT status FROM tasks WHERE id = ?").get(req.taskId) as { status: string }).status).toBe("IMPLEMENTING"); // the design edit moved the task along
+    figmaVerification(as("qa"), { taskId: req.taskId, counts: { colour: 0 } });
+    expect((await verifyTask(as("qa"), { taskId: req.taskId })).status).toBe("COMPLETED");
+  }, 30_000);
 });

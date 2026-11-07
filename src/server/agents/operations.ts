@@ -58,16 +58,18 @@ export async function runAudit(ctx: Ctx, _input: object = {}) {
   const resources = { github: resourceFor(brand.id, "github") ?? createResource(brand.id, "github", "Nexa web fixture", "fixture://nexa-web"), figma: figmaMcp ? null : (resourceFor(brand.id, "figma") ?? createResource(brand.id, "figma", "Nexa Figma fixture", "fixture://nexa-figma")) };
   const [githubFindings, snapshot] = await Promise.all([real ? scanGithubRepo(brand.id).then((r) => r.findings) : scanGithubFixture(join(process.cwd(), "fixtures", "nexa-web")), readFile(join(process.cwd(), "fixtures", "nexa-figma.json"), "utf8")]);
   const figmaFindings = figmaMcp ? [] : scanFigmaFixture(JSON.parse(snapshot));
+  const githubWork = githubFindings.length > 0; const figmaFixtureWork = Boolean(resources.figma) && figmaFindings.length > 0; const designConfigured = Boolean(figmaMcp || canvaMcp);
+  if (!githubWork && !figmaFixtureWork && !designConfigured) return { reused: false, nothingToFix: true, message: "No outdated brand values were found, so there is nothing to approve or fix." };
   const owner = db().prepare("SELECT user_id FROM memberships WHERE brand_id = ? AND role = 'owner' LIMIT 1").get(brand.id) as { user_id: string } | undefined;
   const name = agentDisplayName[role];
   const { task } = createTask({ brandId: brand.id, initiatedBy: owner?.user_id ?? "", type: "brand_correction", description: `Correct ${brand.name} brand values in ${real ? "the connected GitHub repository" : "the fixture repository"} and design`, idempotencyKey: `agent-audit-${brand.id}-${Date.now()}`, agentName: name });
-  addTaskResource(task.id, resources.github); if (resources.figma) addTaskResource(task.id, resources.figma);
+  if (githubWork) addTaskResource(task.id, resources.github); if (figmaFixtureWork && resources.figma) addTaskResource(task.id, resources.figma);
   transitionTask(task.id, "ASSESSING", name); transitionTask(task.id, "AUDITING", name);
   db().transaction(() => { replaceAuditFindings(brand.id, resources.github, githubFindings); if (resources.figma) replaceAuditFindings(brand.id, resources.figma, figmaFindings); })();
   transitionTask(task.id, "PLAN_READY", name);
-  requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
+  if (githubWork) requestApproval(task.id, owner?.user_id ?? "", githubOperation(resources.github), name); if (figmaFixtureWork && resources.figma) requestApproval(task.id, owner?.user_id ?? "", figmaOperation(resources.figma), name);
   // With a Figma file audited through the MCP, the task waits in PLAN_READY until the Design agent adds the Figma approval (or the Director proceeds without it).
-  if (!figmaMcp && !canvaMcp) transitionTask(task.id, "AWAITING_APPROVAL", name);
+  if (!designConfigured) transitionTask(task.id, "AWAITING_APPROVAL", name);
   return { reused: false, newFindingCount: githubFindings.length + figmaFindings.length, ...(figmaMcp ? { figma: { url: figmaMcp.url, fileKey: figmaMcp.fileKey, next: "Ask the Design agent to audit this Figma file for this task through the Figma MCP. It adds the Figma approval; then post the approval request." } } : {}), ...(canvaMcp ? { canva: { url: canvaMcp.url, designId: canvaMcp.designId, next: "Ask the Design agent to audit this Canva design for this task through the Canva MCP. It adds the Canva approval." } } : {}), ...taskState(ctx, task.id) };
 }
 
@@ -111,27 +113,49 @@ export async function executeTarget(ctx: Ctx, input: { taskId: string; target: T
 export async function verifyTask(ctx: Ctx, input: { taskId: string }) {
   requireRole(ctx.role, ["qa"], "verify a task");
   const task = taskRow(input.taskId, ctx.brandId);
+  const required = db().prepare("SELECT r.id AS resource_id, r.external_resource_id AS target FROM task_resources tr JOIN resources r ON r.id = tr.resource_id WHERE tr.task_id = ? AND tr.required = 1").all(task.id) as Array<{ resource_id: string; target: string }>;
   const records = db().prepare("SELECT r.external_resource_id AS target, r.id AS resource_id, e.evidence FROM execution_records e JOIN resources r ON r.id = e.resource_id WHERE e.task_id = ? AND e.mode IN ('fixture', 'github_real', 'figma_plugin', 'figma_mcp', 'canva_mcp') AND e.result IN ('succeeded', 'applied_reported')").all(task.id) as Array<{ target: string; resource_id: string; evidence: string }>;
   const isGithub = (target: string) => target === "nexa-web" || target.startsWith("gh:");
   const isFigmaFile = (target: string) => target.startsWith("figma-plugin:") || target.startsWith("canva-mcp:"); // a Figma file or Canva design edited through an MCP
-  const missing = (["github", "figma"] as Target[]).filter((t) => !records.some((r) => (t === "github" ? isGithub(r.target) : r.target === externalId.figma || isFigmaFile(r.target))));
-  if (missing.length) throw new AgentApiError(`Refused: nothing to verify yet for ${missing.join(", ")}. Both resources must be executed first.`, 409);
-  // A Figma file edited through the Figma MCP is verified by Brand QA re-reading it there; that report must exist before the task can be finished.
-  for (const design of records.filter((r) => isFigmaFile(r.target))) {
-    const reported = db().prepare("SELECT status, verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, design.resource_id) as { status: string; verification_evidence: string | null } | undefined;
-    if (!reported?.verification_evidence) throw new AgentApiError(`Refused: Brand QA must first re-read ${design.target.split(":")[0] === "canva-mcp" ? "the Canva design" : "the Figma file"} through its MCP and report it with POST /api/agent/figma-verification, then call verify again.`, 409);
+  if (required.length === 0) throw new AgentApiError("This task has no resources to verify.", 409);
+  const missing = required.filter((r) => !records.some((e) => e.resource_id === r.resource_id)).map((r) => r.target.split(":").pop());
+  if (missing.length) throw new AgentApiError(`Refused: nothing to verify yet for ${missing.join(", ")}. Every resource in the task must be executed first.`, 409);
+  // A design edited through an MCP is verified by Brand QA re-reading it there; that report must exist before the task can be finished.
+  for (const design of required.filter((r) => isFigmaFile(r.target))) {
+    const reported = db().prepare("SELECT verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, design.resource_id) as { verification_evidence: string | null } | undefined;
+    if (!reported?.verification_evidence) throw new AgentApiError(`Refused: Brand QA must first re-read ${design.target.startsWith("canva-mcp:") ? "the Canva design" : "the Figma file"} through its MCP and report it with POST /api/agent/figma-verification, then call verify again.`, 409);
   }
   if (task.status === "IMPLEMENTING") transitionTask(task.id, "VERIFYING", "Brand QA");
   else if (task.status !== "VERIFYING") throw new AgentApiError(`Cannot verify while the task is ${task.status}.`, 409);
-  const github = records.find((r) => isGithub(r.target))!; const figma = records.find((r) => r.target === "nexa-figma" || isFigmaFile(r.target))!;
-  const githubEvidence = JSON.parse(github.evidence) as { branch: string; label?: string; repo: string; baseBranch: string; baseShaBefore: string; pullRequest: { number: number; url: string }; changedFiles: string[] };
-  const branch = githubEvidence.branch; const realPull = githubEvidence.label === "real GitHub pull request";
-  const [githubReport, figmaReport] = await Promise.all([realPull ? verifyGithubReal({ brandId: ctx.brandId, taskId: task.id, resourceId: github.resource_id, evidence: githubEvidence }) : verifyGithubFixture({ taskId: task.id, resourceId: github.resource_id, branch, workspaceKey: ctx.brandId }), isFigmaFile(figma.target) ? Promise.resolve(JSON.parse((db().prepare("SELECT verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, figma.resource_id) as { verification_evidence: string }).verification_evidence) as { verified: boolean }) : verifyFigmaFixture({ taskId: task.id, resourceId: figma.resource_id, workspaceKey: ctx.brandId })]);
-  updateTaskResource({ taskId: task.id, resourceId: github.resource_id, status: githubReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: githubReport, error: githubReport.verified ? undefined : "GitHub QA failed.", actor: "Brand QA" });
-  if (!isFigmaFile(figma.target)) updateTaskResource({ taskId: task.id, resourceId: figma.resource_id, status: figmaReport.verified ? "COMPLETED" : "FAILED", verificationEvidence: figmaReport, error: figmaReport.verified ? undefined : "Figma fixture QA failed.", actor: "Brand QA" });
+  const reports: Record<string, unknown> = {}; let githubReport: unknown = null; let humanFollowUp = "";
+  for (const res of required) {
+    const rec = records.find((e) => e.resource_id === res.resource_id)!;
+    if (isGithub(res.target)) {
+      const ev = JSON.parse(rec.evidence) as { branch: string; label?: string; repo: string; baseBranch: string; baseShaBefore: string; pullRequest: { number: number; url: string }; changedFiles: string[] };
+      const real = ev.label === "real GitHub pull request";
+      const report = real ? await verifyGithubReal({ brandId: ctx.brandId, taskId: task.id, resourceId: res.resource_id, evidence: ev }) : await verifyGithubFixture({ taskId: task.id, resourceId: res.resource_id, branch: ev.branch, workspaceKey: ctx.brandId });
+      updateTaskResource({ taskId: task.id, resourceId: res.resource_id, status: report.verified ? "COMPLETED" : "FAILED", verificationEvidence: report, error: report.verified ? undefined : "GitHub QA failed.", actor: "Brand QA" });
+      githubReport = report; reports.github = report;
+      humanFollowUp = real ? `Review and merge the pull request yourself: ${ev.pullRequest.url}` : "Fixture only: there is no real pull request to merge.";
+    } else if (isFigmaFile(res.target)) {
+      reports[res.target] = JSON.parse((db().prepare("SELECT verification_evidence FROM task_resources WHERE task_id = ? AND resource_id = ?").get(task.id, res.resource_id) as { verification_evidence: string }).verification_evidence);
+    } else {
+      const report = await verifyFigmaFixture({ taskId: task.id, resourceId: res.resource_id, workspaceKey: ctx.brandId });
+      updateTaskResource({ taskId: task.id, resourceId: res.resource_id, status: report.verified ? "COMPLETED" : "FAILED", verificationEvidence: report, error: report.verified ? undefined : "Figma fixture QA failed.", actor: "Brand QA" });
+      reports[res.target] = report;
+    }
+  }
   const finished = finishVerification(task.id);
   if (finished.status === "COMPLETED") resolveTaskFindings(task.id); // verified fixes leave the open list
-  return { status: finished.status, github: githubReport, figma: figmaReport, humanFollowUp: realPull ? `Review and merge the pull request yourself: ${githubEvidence.pullRequest.url}` : "Fixture only: there is no real pull request to merge." };
+  const designReports = Object.entries(reports).filter(([k]) => k !== "github").map(([, v]) => v);
+  return { status: finished.status, github: githubReport, figma: designReports[0] ?? null, resources: reports, humanFollowUp };
+}
+
+/** Tasks with approvals still waiting, so the Director can find what "approve" refers to without being told a task id. */
+export function pendingTasks(ctx: Ctx) {
+  requireRole(ctx.role, ["director", "design"], "list pending approvals");
+  const rows = db().prepare("SELECT t.id AS taskId, t.description, t.status, COUNT(a.id) AS pending FROM tasks t JOIN approvals a ON a.task_id = t.id AND a.decision = 'pending' WHERE t.brand_id = ? GROUP BY t.id ORDER BY t.created_at DESC").all(ctx.brandId);
+  return { pending: rows, note: rows.length === 0 ? "Nothing is waiting for approval. To prepare fixes, start an audit (POST /api/agent/audit) or have the Design agent audit the design." : "Use the newest taskId for an approve or reject." };
 }
 
 export function recordRoomEvent(ctx: Ctx, input: { roomId: string; messageId: string; taskId?: string; note?: string }) {
